@@ -1,5 +1,6 @@
 # php-telegram-bot-service
 Compatible php 8.1
+
 A comprehensive set of libraries, classes, and functions essential for building a functional procedural Telegram bot that does not rely on any external dependencies
 
 Повний набір бібліотек, класів та функцій, необхідних для створення функціонального процедурного Telegram-бота, який не залежить від жодних зовнішніх залежностей
