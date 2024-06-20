@@ -1,0 +1,7 @@
+RewriteEngine Off
+<FilesMatch "\.(php|txt)$">
+    Require all denied
+</FilesMatch>
+<Files "hook.php">
+    Require all granted
+</Files>
