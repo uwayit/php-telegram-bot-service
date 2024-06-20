@@ -7,7 +7,16 @@ A comprehensive set of libraries, classes, and functions essential for building 
 ```php
 // Connection base class
 include_once $_SERVER['DOCUMENT_ROOT'] . "/lib/tgBot.php";
+// Get the bot object
+// Specify the token from BotFather and the bot name
+$bot = new tgBot($token, $name);
 
+// Send message
+$bot->for($chat);
+// $bot->forCallBack($cqid);
+
+// Ban, for example, until 2048 year (unix)
+$bot->tempban($user, '2473401362');
 
 ```
 
