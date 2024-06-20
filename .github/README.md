@@ -23,11 +23,12 @@ $bot->tempban($user, '2473401362');
 Якщо Ви хочете використовувати не тільки клас tgBot, а одразу мати функціональний бот, тоді Вам треба:
 1. В файлі MysqlConnection.php вказати дані для доступу до бази данних
 2. Скористайтесь методом setWebhook API Telegram для встановлення webhook
-```php
-// Example
-// Передайте API ключ вашого бота та url hook файлу
-// Передайте також додатковий ідентифікатор ?bot={$botname} якщо хочете використовувати один спільний файл hook для декількох ботів
-// Pass your bot's API key and url hook file
-// Pass also the additional ID ?bot={$botname} if you want to create one single hook file for several bots
+
+**Example using the browser address bar**
+Pass your bot's API key and url hook file
+Pass also the additional ID ?bot={$botname} if you want to create one single hook file for several bots
+Передайте API ключ вашого бота та url hook файлу
+Передайте також додатковий ідентифікатор ?bot={$botname} якщо хочете використовувати один спільний файл hook для декількох ботів
+
 https://api.telegram.org/bot{$token}/setWebhook?url=https://{$host}/bots/hook.php?bot={$botname}
-```
+
