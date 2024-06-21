@@ -22,6 +22,7 @@ include_once $_SERVER['DOCUMENT_ROOT'] . "/lib/tgBot.php";
 // Get the bot object
 // Specify the token from BotFather and the bot name
 $bot = new tgBot($token, $name);
+$bot->liteModeOn();
 ```
 
 Скористайтесь методом setWebhook API Telegram для встановлення webhook:  
