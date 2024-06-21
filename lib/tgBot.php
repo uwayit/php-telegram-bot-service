@@ -1,11 +1,7 @@
 <?php
-ini_set('display_errors',1);
-error_reporting(E_ALL);
-// Инклудим классы. Кажется каким-то велосипедом делать это тут, но я ж недалёкий
 
 
 class tgBot{
-
 
     private $token = '';
     private $bot = '';
