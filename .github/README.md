@@ -2,11 +2,15 @@
 Compatible php 8.1
 
 БОТ НА ЕТАПІ ФІНАЛЬНОГО ДОКУМЕНТУВАННЯ 
+
 ЗАРАЗ ВІН НЕ ГОТОВИЙ ДЛЯ ВИКОРИСТАННЯ 
+
 ПЕРШИЙ РОБОЧИЙ КОМІТ ЗАПЛАНОВАНО НА 25.06.2024 
 
 THE BOT IS IN THE STAGE OF FINAL DOCUMENTATION
+
 IT IS NOT READY FOR USE NOW
+
 FIRST WORK COMMITMENT SCHEDULED FOR 06/25/2024
 
 A comprehensive set of libraries, classes, and functions essential for building a functional procedural Telegram bot that does not rely on any external dependencies
@@ -24,11 +28,17 @@ $bot = new tgBot($token, $name);
 Скористайтесь методом setWebhook API Telegram для встановлення webhook:
 
 **If you using the browser address bar for setWebhook**
+
 https://api.telegram.org/bot{token}/setWebhook?url=https://{example.com}/bots/hook.php?bot={botname}
+
 Specify the API key of your bot and the url path to your hook file
+
 Also specify the additional parameter ?bot={botname}. This will allow using one shared hook file for multiple bots
+
 Вкажіть API ключ вашого бота та url шлях до Вашого hook файлу
+
 Вкажіть також додатковий параметр ?bot={botname}. Це дозволить використовувати один спільний файл hook для декількох ботів
+
 **Example**
 https://api.telegram.org/bot1234567890:BBIJKL80DFMMOPQy-Yfj8Zq6Lm_78Vb2x3W/setWebhook?url=https://example.com/bots/hook.php?bot=botnameBot
 
@@ -52,14 +62,15 @@ $bot->reply("Hello World");
 
 Приклад стартового, але функціонального та повністю робочого файлу **hook** можна знайти в 
 **bots/hook.php**
+
 Цей стартовий файл **hook** гарно прокоментований і має багато готових рішень
 
 З коробки він:
-Вітається з користувачем
-Зберігає надіслані йому файли
-...
-...
-...
+
+1. Вітається з користувачем
+2. Зберігає надіслані йому файли
+3. ...
+4. ...
 
 
 **Наприклад бот може**:
@@ -75,13 +86,17 @@ $bot->saveFile($data['message']['photo'][1], $pathtosave);
 
 
 По замовчуванню кожен запит для зручного дебагінгу логується в текстові файли в папку bots/nameBot/
+
 Для відключення логування **вхідних** закоментуйте в bots/test.php рядок $bot->botLog(...);
+
 Для відключення логування **вихідних** закоментуйте в lib/tgBot.php у функції request() рядок $bot->botLog(...);
+
 Дуже рекомендую обов'язково відключити логування після дебагінгу
 
 Бот може стати більш функціональним якщо Ви підключити його до MySQL бази данних.
 
 Тоді бот зможе:
+
 1. Зберігати унікальні для кожного боту налаштування (країну, адміністраторів, модераторів, контакти, сайт, ключовий tg канал тощо)
 2. ...
 3. ...
