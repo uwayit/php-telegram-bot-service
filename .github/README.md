@@ -1,4 +1,4 @@
-# php-telegram-bot-service
+# php telegram api bot easy FULL
 
 ### PHP Compatibility  
 This code has been tested and verified to work with PHP 8.1.  
