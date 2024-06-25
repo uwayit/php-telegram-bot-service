@@ -4,7 +4,7 @@
 This code has been tested and verified to work with PHP 8.1.  
 It may also be compatible with PHP 5.6, though this is not guaranteed.  
 
-[README українською](docs/README.ua.md)  
+[README українською](../docs/README.ua.md)  
 
 THE BOT IS IN THE STAGE OF FINAL DOCUMENTATION  
 IT IS NOT READY FOR USE NOW  
