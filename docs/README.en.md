@@ -44,7 +44,9 @@ $bot->tempban($user, '2473401362');
 
 // chat_id|from_id of the recipient of the message
 $bot->for($chat_id);
-// Previously added keyboard is removed automatically after sending a message, so for a new message it must be specified again or if you want to save the keyboard, BEFORE sending each message you can specify
+// Previously added keyboard is removed automatically after sending a message
+// so for a new message it must be specified again or if you want to save the keyboard
+// BEFORE sending each message you can specify
 $bot->clearKeyboardAfterSend = false;
 // Send message
 // After sending, we can parse the array with the response
