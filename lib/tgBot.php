@@ -1,32 +1,41 @@
 <?php
 
-
 class tgBot{
+
 
     private $token = '';
     private $bot = '';
-    public $st = '';
+    // If this parameter is not empty, then we need to log the fact that this message was sent
+    // to be able to reference it
+    // and so as not to duplicate it in the future
     private $essence = '';
     private $host = '';
     private $isAdmin = false;
     public $keyboard = [];
-    public $resize_keyboard = true;
-    public $type_keyb = false;
-    public $parseMode = 'Markdown';   // MarkdownV2 - ще також можна, але там все треба екранувати\.\.\.
-    public $needsend = 'needsend';    // По замовчуванню в будь якому випадку відправляємо повідомлення
-    public $chat = '';                // Отримувач повідомлення
-    public $cqid = '';                // Куди надсилати ok callback після натискання на кнопку
-    public function __construct($token,$bot,$host,$isAdmin = false){
+    public $resize_keyboard = true; //
+    public $type_keyb = false;      // 
+    public $clearKeyboardAfterSend = true;   // Чи очищувати клавіатуру після відправки повідомлення
+	public $response = false;       // Відповідь від API telegram
+    public $testStatus = true;      // Чи треба 
+    public $FullMode = true;        // Якщо false - класс не буде намагатись використовувати інші класи core:: tg:: ident:: тощо
+    // MarkdownV2 - також непоганий варіан, але там буквально все треба екранувати\.\.\.
+    // Тому я використовую по замовчуванню звичайний Markdown
+    public $parseMode = 'Markdown';   
+    // Чи можна відправити повідомлення
+    // Якщо $essence не пустий, то факт відправки логується і тоді можна
+    public $needsend = 'needsend'; // По замовчуванню в будь якому випадку відправляємо
+    public $chat = '';             // Отримувач повідомлення
+    public $cqid = '';             // Куди надсилати ok callback після натискання на кнопку
+    public function __construct($token,$bot,$host = false,$isAdmin = false){
         $this->token = $token;
         $this->bot = $bot;
         $this->host = $host;
         $this->isAdmin = $isAdmin;
-        //$this->st = $st;
     }
     
 
 
-    public function request($method, $params = []){ //да-да, request на post-е. в коем-то веке.
+    public function request($method, $params = []){ 
         $url = 'https://api.telegram.org/bot' . $this->token .  '/' . $method;
         $curl = curl_init();
           
@@ -34,29 +43,62 @@ class tgBot{
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POST, true);
-        //if($method == 'sendPhoto'){curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type:multipart/form-data"));curl_setopt($curl, CURLOPT_SAFE_UPLOAD, true); }
         curl_setopt($curl, CURLOPT_POSTFIELDS, $params); 
           
         $out = json_decode(curl_exec($curl), true);
         curl_close($curl);
-        // Автологирование в файлы ВХОДЯЩИХ сообщений
+        // Auto-logging to INCOMING message
         if(empty($params['chat_id'])){
             $chat = false;
         } else {
             $chat = $params['chat_id'];
         }
-        // Нужно только для отладки
-        // После окончания отладки стоит отключить логирование за ненадобностью
+        // Needed for debugging only
+        // After finishing debugging, you should disable logging as unnecessary
         $this->botLog($this->bot,$chat,$out,$method);
-        // Здається максимально логічним очищати клавіатуру після відправки запиту
-        // На випадок якщо треба відправити другий запит, щоб попередня клавіатура не заважала
-        $this->keyboard = [];
+
+        if ($this->clearKeyboardAfterSend == true) {
+            // Clear the keyboard after sending a notification
+            // щоб попередня клавіатура не дублювалась у випадку якщо треба відправити другий запит в рамках одного виклику
+            $this->keyboard = [];
+            }
         return $out;
     }
 
+    // Якщо немає доступу до бази данних
+    // значить бот запущено в режиме використання лише класу tgBot 
+    // В такому жодні додаткові класи не будуть ініціалізовуватись
+    public function liteModeOn()
+        {
+        $this->CancelTestStatus();
+        $this->FullMode = false;
+        }
+
+        // Запускаємо тестування статусу тільки якщо є підключення до бази
+        // Водночас ми ховаємо залежності від class tg
+        public function getTestStatus(){
+            if($this->FullMode == true){
+                return tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+            }
+        return false;
+        }
+
+    // Запускаємо логування діалогу в базу тільки якщо є підключення до бази 
+    // Водночас ми ховаємо залежності від class tg
+    public function getLogDialog($text)
+        {
+        if ($this->FullMode == true) {
+            return tg::logDialog($this->essence, $this->response, $text, $this->chat);
+            }
+        return false;
+        }
+
+    // Якщо треба встановити відмінний від дефолтного parsemode
     public function setupParseMode($mode){
         $this->parseMode = $mode;
     }
+
+    // 
     public function setupTypeKeyboard($type_keyb)
         {
             $this->type_keyb = $type_keyb;
@@ -68,6 +110,7 @@ class tgBot{
          array_push($this->keyboard, $button);
         }
 
+        // Якщо треба видалити клавіатуру
         public function deleteKeyboard(){
             $this->keyboard = true;
             $this->type_keyb = 'remove_keyboard';
@@ -80,6 +123,7 @@ class tgBot{
         {
         $this->keyboard = [];
         }
+        // Видаляємо якусь кнопку з масиву клавіатури
         public function deleteButton($button_id){
 
         }
@@ -116,22 +160,27 @@ class tgBot{
     // Якщо хочемо логувати повідомлення - даємо їм імена
     public function giveLogName($name)
         {
-            // Если этот параметр не пустой, значит нам нужно логировать факт отправки этого сообщения 
-            // чтобы иметь возможность на него ссылаться
-            // и чтобы не дублировать его в будущем
             if(!empty($name) and !is_array($name)){
                 $this->essence = $name;
             }
         }
+
+        // Перевіряємо, чи не надсилали раніше цільове повідомлення клієнту
         public function setHoldMinutes($holdtime){
             // Если это не пустое, значит данное сообщение нельзя отправлять часто!
             // То есть можно отправлять если прошло время холда
-            if(!empty($this->essence)){
+            if(!empty($this->essence) and $this->FullMode == true){
                 $holdtime = '- '. $holdtime.' minutes';
                 $this->needsend = core::tns($this->chat,'tg',$this->essence, $holdtime);
             }
-
         }
+
+        //
+    public function CancelTestStatus()
+        {
+        $this->testStatus = false;
+        }
+
         // В який саме чат відправляємо повідомлення
         // Якщо це особистий діалог з ботом, то відправляємо в особисті
     public function for($chat,$user = false) {
@@ -173,28 +222,30 @@ class tgBot{
             // Передавать с сообщением можно только одну клавиатуру ИЛИ только 'remove_keyboard' => true
             // Но keyboard может оставать с прошлых сообщений, то есть её можно передать заранее или отдельным this->request в рамках одного this->reply
             // Хотя возможно её просто лучше не использовать??
-            $a = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "text" => $text,
+            $this->response = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "text" => $text,
             'disable_web_page_preview' => true,
             'reply_markup' => json_encode($reply_markup)]);
         } else {
-            $a = [];
-            $a['error'] = 'not need sent';
+            $this->response = [];
+            $this->response['error'] = 'not need sent';
         }
-        //core::vd($a);
 
-        // Автоматично видаляємо прив'язку телегі у юзера
-        $testStatus = tg::testStatus($this->chat,$a,$this->bot);
+        // Перевіряємо відповідь для того, щоб виявити:
+        // Зміну ID чату отримувача
+        // Відписку юзера від повідомлень бота
+        $reID = $this->getTestStatus();
         // Якщо ми отримали не булеве значення, то це ми отримали новий id чату
-        // А значить минуле повідомлення недоставлене і треба його продублювати в новий чат
-        if(is_bool($testStatus) === false){
-            $a = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $testStatus, "text" => $text,'disable_web_page_preview' => true,
+        // А значить минуле повідомлення недоставлене по старому ID
+        // Коли таке може відбутись?
+        // Коли група/чат/канал стали супергруппою, а значить автоматично змінили ID
+        if(is_bool($reID) === false){
+            $this->response = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $reID, "text" => $text,'disable_web_page_preview' => true,
                 'reply_markup' => json_encode($reply_markup)]);
         }
-
         // Если успешно отправлено и есть признак $essence, то логируем в базу данных в dialog
-        $logDialog = tg::logDialog($this->essence,$a,$text,$this->chat);
-
-        return $a;
+        $this->getLogDialog($text);
+        //
+        return $this->response;
     }
 
     // Дозволяє редагувати повідомлення
@@ -203,41 +254,41 @@ class tgBot{
         {
         if (empty($message_id))
             return false;
-        $a = $this->request('editMessageReplyMarkup', [
+        $this->response = $this->request('editMessageReplyMarkup', [
             "chat_id" => $this->chat,
             "text" => $text,
             "message_id" => $message_id,
             'reply_markup' => json_encode([$this->type_keyb => $this->keyboard,])
         ]);
-        return $a;
+        return $this->response;
         }
 
 
-    // предназначено для отправки простых сообщений (вероятно только в личку, не в каналы) без изысков и переусложней которые есть в ->reply
+    // призначено для відправки простих повідомлень без клавіатур, вишукувань та переускладнень які є в -> reply
     public function hello($text){
         $type_keyb = 'remove_keyboard';
         $keyboard = true;
-        $a = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "text" => $text,'disable_web_page_preview' => true,
+        $this->response = $this->request('sendMessage', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "text" => $text,'disable_web_page_preview' => true,
             'reply_markup' => json_encode([$type_keyb => $keyboard,'one_time_keyboard' => true,'resize_keyboard' => $this->resize_keyboard])]);
-        return $a;
+        return $this->response;
     }
 
 
 
-    // Відповідь
-    // Якщо другий параметр true то  показуємо відповідь у вспливашці show_alert
+    // tooltips відповідь на клік по кнопці
+    // Якщо другий параметр true то  показуємо відповідь не просто у вспливашці, а show_alert на кшталт js alert
     public function answerCallback($text,$inalert = false){
         if(empty($this->cqid))
         return false; 
 
-        $a = $this->request('answerCallbackQuery', ["callback_query_id" => $this->cqid, 'text' => $text,'show_alert' => $inalert]); 
-        return $a;
+        $this->response = $this->request('answerCallbackQuery', ["callback_query_id" => $this->cqid, 'text' => $text,'show_alert' => $inalert]); 
+        return $this->response;
     }
 
 
     public function deleteMessage($message_id){
-        $a = $this->request('deleteMessage', ["chat_id" => $this->chat, 'message_id' => $message_id]);
-        return $a;
+        $this->response = $this->request('deleteMessage', ["chat_id" => $this->chat, 'message_id' => $message_id]);
+        return $this->response;
     }
 
     // Перевіряємо, чи є користувач в чаті
@@ -247,13 +298,14 @@ class tgBot{
         if(!empty($chat)){
             $this->chat = $chat;
         }
-        $a = $this->request('getChatMember', ["chat_id" => $this->chat, 'user_id' => $user]);
-        return $a;
+        $this->response = $this->request('getChatMember', ["chat_id" => $this->chat, 'user_id' => $user]);
+        return $this->response;
     }
 
 
     public function createPoll($question,$answers = []){
-        $a = $this->request('sendPoll', ["chat_id" => $this->chat, 'question' => $question, "options" => $answers]); return $a;
+        $this->response = $this->request('sendPoll', ["chat_id" => $this->chat, 'question' => $question, "options" => $answers]); 
+        return $this->response;
     }
     // Only
     public function pictureReply($text,$url_of_picture,$textbtn = false,$ticket = false){
@@ -272,90 +324,90 @@ class tgBot{
             $sendarray = ["parse_mode" => $this->parseMode, "chat_id" => $this->chat,'disable_web_page_preview' => true,
             "caption" => $text,
             'reply_markup' => json_encode($reply_markup), 
-            "photo" => new CurlFile($url_of_picture)]; // realpath($url_of_picture) тест
-        $a = $this->request('sendPhoto', $sendarray);
-        //$this->botLog($this->bot,$chat,$a,'sendPhoto');
-        // Автоматично видаляємо прив'язку телегі у юзера
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+            "photo" => new CurlFile($url_of_picture)]; 
+        $this->response = $this->request('sendPhoto', $sendarray);
+        tg::testStatus($this->chat,$this->response, $this->testStatus,$this->bot);
+        return $this->response;
     }
     public function videoReply($text,$url_of_video){
-        $a = $this->request('sendVideo', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "video" => $url_of_video]); 
-        // Автоматично видаляємо прив'язку телегі у юзера
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+        $this->response = $this->request('sendVideo', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "video" => $url_of_video]); 
+        tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+        return $this->response;
     }
     public function gifReply($text,$url_of_gif){
-        $a = $this->request('sendAnimation', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "animation" => $url_of_gif]);
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+        $this->response = $this->request('sendAnimation', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "animation" => $url_of_gif]);
+        tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+        return $this->response;
     }
     public function audioReply($text,$url_of_audio){
-        $a = $this->request('sendAudio', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "audio" => $url_of_audio]);
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+        $this->response = $this->request('sendAudio', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "audio" => $url_of_audio]);
+        tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+        return $this->response;
     }
     public function voiceReply($text,$url_of_voice){
-        $a = $this->request('sendVoice', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "voice" => $url_of_voice]);
-        // Автоматично видаляємо прив'язку телегі у юзера
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+        $this->response = $this->request('sendVoice', ["parse_mode" => $this->parseMode, "chat_id" => $this->chat, "caption" => $text, "voice" => $url_of_voice]);
+        tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+        return $this->response;
     }
     public function videoNoteReply($url_of_vidnote){
-        $a = $this->request('sendVideoNote', ["chat_id" => $this->chat, "video" => $url_of_vidnote]);
-        // Автоматично видаляємо прив'язку телегі у юзера
-        tg::testStatus($this->chat,$a,$this->bot);
-        return $a;
+        $this->response = $this->request('sendVideoNote', ["chat_id" => $this->chat, "video" => $url_of_vidnote]);
+        tg::testStatus($this->chat, $this->response, $this->testStatus, $this->bot);
+        return $this->response;
     }
+
     public function setChatTitle($title){
-        $a = $this->request('setChatTitle', ["chat_id" => $this->chat, "title" => $title]);return $a;
+        $this->response = $this->request('setChatTitle', ["chat_id" => $this->chat, "title" => $title]);
+        return $this->response;
     }
+    
     // Можуть робити тільки адміни
-    // Про всяк випадок збираємо інфу для інформування адміну
-    public function chatInviteLink($adminemail,$chat = false){
+    public function chatInviteLink($admin = false,$chat = false){
         if (!empty($chat)) {
             $this->chat = $chat;
             }
-        $a = $this->request('exportChatInviteLink', ["chat_id" => $this->chat]);
-        if(!empty($a['result'])){
-            return $a['result'];
+        $this->response = $this->request('exportChatInviteLink', ["chat_id" => $this->chat]);
+        if(!empty($this->response['result'])){
+            return $this->response['result'];
         }
         // Якщо помилка, то треба повідомляти про неї адміна
-        if(!empty($a['error_code']) and !empty($adminemail)) {
-            $admin = tg::getTgIdByEmail($adminemail);
+        if(!empty($this->response['error_code']) and !empty($admin)) {
+            // Якщо надано ємаіл адміна, то шукаємо по милу його chat_id в базі
+            if (filter_var($admin, FILTER_VALIDATE_EMAIL)) {
+                $admin = tg::getTgIdByEmail($admin);
+                }
             $this->for($admin);
-            $this->hello('In tg group '.$this->chat.' error: '. core::arrayToKeyValueString($a));
+            $this->hello('In tg group '.$this->chat.' error: '. $this->arrayToKeyValueString($this->response));
 
         }
         return false;
     }
     public function pinMessage($message_id){
-        $a = $this->request('pinChatMessage', ["chat_id" => $this->chat, "message_id" => $message_id]);return $a;
+        $this->response = $this->request('pinChatMessage', ["chat_id" => $this->chat, "message_id" => $message_id]);return $this->response;
     }
     public function unpinMessage(){
-        $a = $this->request('unpinChatMessage', ["chat_id" => $this->chat]);return $a;
+        $this->response = $this->request('unpinChatMessage', ["chat_id" => $this->chat]);return $this->response;
     }
     public function tempban($userid,$time = false){
         // if(is_int($userid) != true) return false;
         // time должен быть в unix (timestamp) формате 
         // Якщо час не вказано в цій функції, то банимо на завжди (до 2048 року)
         if($time == false){ $time = 2473401362; } 
-        $a = $this->request('kickChatMember', ["chat_id" => $this->chat, "user_id" => $userid, "until_date" => $time]);return $a;
+        $this->response = $this->request('kickChatMember', ["chat_id" => $this->chat, "user_id" => $userid, "until_date" => $time]);return $this->response;
     }
 
     public function kick($userid)
         {
-        $a = $this->request('kickChatMember', ["chat_id" => $this->chat, 'user_id' => $userid]);
-        return $a;
+        $this->response = $this->request('kickChatMember', ["chat_id" => $this->chat, 'user_id' => $userid]);
+        return $this->response;
         }
+
     // Отримуємо адмінів чату
     public function getChatAdmins(){
-        $a = $this->request('getChatAdministrators', ["chat_id" => $this->chat]);return $a;
+        $this->response = $this->request('getChatAdministrators', ["chat_id" => $this->chat]);return $this->response;
     }
 
 
-    // Функція збереження файлу який хтось відправив боту
-
+    // Функція збереження на сервері файлу який відправили боту
     public function saveFile($file,$pathtosave){
         $file_id = $file['file_id'];
         // Отримання інформації про файл
@@ -368,9 +420,7 @@ class tgBot{
     }
 
 
-    // Текстовый лог ВХОДЯЩИХ сообщений
-    // Хотя можно конечно логировать ещё и исходящие от клиента, но в этом нет особой нужды
-    // Так как логирование нужно лишь для отладки
+    // Функція що логує повідомлення
     public function botLog($bot,$id,$data,$type) {
         if(empty($data)){
             return false;
@@ -387,6 +437,23 @@ class tgBot{
         fclose($fpp);
     }
 
+    // РОбить з одномірного масиву рядок
+    // Допомогає з массиву з помилкою сформувати рядок який можна відправити наприклад в телегу адміну
+    public function arrayToKeyValueString($array)
+        {
+        // Перевірка, чи масив не пустий і є асоціативним
+        if (empty($array) || !is_array($array)) {
+            return '';
+            }
 
+        $keyValuePairs = [];
+
+        foreach ($array as $key => $value) {
+            $keyValuePairs[] = $key . ':' . $value;
+            }
+
+        // Об'єднуємо всі пари в один рядок
+        return implode(',', $keyValuePairs);
+        }
 
 }

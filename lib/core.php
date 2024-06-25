@@ -1189,7 +1189,7 @@ class core
     static public function makeQR($hostdef, $autodir, $key, $qrtext, $size = '6', $margin = '1')
         {
         // Включаем библиотеку
-        include_once $_SERVER['DOCUMENT_ROOT'] . '/lib/phpqrcode/qrlib.php';
+        require_once $_SERVER['DOCUMENT_ROOT'] . '/lib/phpqrcode/qrlib.php';
         // Перевірка наявності каталогу
         if (!is_dir($_SERVER['DOCUMENT_ROOT'] . '/files/qr/' . $hostdef . '/' . $autodir)) {
             // Створення каталогу, якщо його немає
@@ -1492,7 +1492,7 @@ class core
 
 
     // Якщо елемент S е в масиві A повертаємо тру
-    // АБо якщо початок $s співпадає з елемнтом з $a
+    // Якщо передано третій параметр, то перевіряємо чи початок $s співпадає з елемнтом з $a
     static public function inar($s, $a, $checkStart = false)
         {
         if (empty($s) or empty($a))
@@ -1517,6 +1517,46 @@ class core
             return false;
             }
         }
+
+    // Перевіряємо, чи не надсилали раніше якесь повідомлення клієнту
+    // Check if a certain message has been sent to the client before
+    // $holdtime can be equal to any number of minutes, hours, days, you just need to write it in an understandable strtotime format
+    static function tns($contact, $messendger, $essence, $holdtime = '-1 days')
+        {
+
+        // Выдаём ошибку если не передано
+        if (empty($contact) or empty($messendger) or empty($essence)) {
+            return 'error';
+            }
+        // Формируем дату
+        $starttime = date('Y-m-d H:i:s', strtotime($holdtime));
+        //core::ec($starttime);
+        $result = core::$db->query("SELECT `id` FROM `dialogue` WHERE `$messendger`='$contact' and `essence`='$essence' and `date` >= '" . $starttime . "'");
+        if ($result->num_rows > 0) {
+            return 'stop';
+            }
+        return 'needsend';
+        }
+
+    // РОбить з одномірного масиву рядок
+    // Допомогає з массиву з помилкою сформувати рядок який можна відправити наприклад в телегу адміну
+    private static function arrayToKeyValueString($array)
+        {
+        // Перевірка, чи масив не пустий і є асоціативним
+        if (empty($array) || !is_array($array)) {
+            return '';
+            }
+
+        $keyValuePairs = [];
+
+        foreach ($array as $key => $value) {
+            $keyValuePairs[] = $key . ':' . $value;
+            }
+
+        // Об'єднуємо всі пари в один рядок
+        return implode(',', $keyValuePairs);
+        }
+        
     /**
      * Отримуємо курс цільової пари
      * param $from НЕ може бути crypto
