@@ -8,7 +8,7 @@ It may also be compatible with PHP 5.6, though this is not guaranteed.
 
 THE BOT IS IN THE STAGE OF FINAL DOCUMENTATION  
 IT IS NOT READY FOR USE NOW  
-FIRST WORK COMMITMENT SCHEDULED FOR 06/30/2024  
+FIRST WORK COMMITMENT SCHEDULED FOR 07/03/2024  
 
 A comprehensive set of libraries, classes, and functions essential for building a functional procedural Telegram bot that does not rely on any external dependencies
 

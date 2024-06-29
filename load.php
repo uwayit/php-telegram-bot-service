@@ -41,6 +41,19 @@ class load {
     const SECURITY = 'LHF&EV*?m$E%';
 
 
+    // Для відправки повідомлень про помилки та винятки ми можемо використовувати slack або tg
+
+    // Налаштовуємо slack bot
+    const SLACK = 'https://hooks.slack.com/services/0000000000000';
+    static $SlackSet = [
+        'username' => 'ErrorBot', // Ім'я відправника повідомлень про помилки
+        'channel' => '#error',    // Вказуємо #канал або @користувача куди будуть йти помилки
+        'link_names' => true
+    ];
+
+    // chat_id розробника в tg
+    const tgdevId = '00000000';
+
     // ! Бажано нижче не чіпай без необхідності
 
     
