@@ -25,8 +25,7 @@ $bot = new tgBot($token, $name);
 /lib/tgBot.php  
 
 ```php
-// If you ONLY need a class 
-// You also need to activate each time you receive an object
+// If you ONLY need the class, then you need to activate it every time you get the object
 $bot->liteModeOn();
 
 // OR TO NOT DO THIS EACH TIME, YOU CAN CHANGE IN THE CLASS ITSELF  
