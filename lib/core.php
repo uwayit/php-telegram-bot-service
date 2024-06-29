@@ -40,7 +40,8 @@ class core
 
 
 
-    // Получаем текущий домен очищенный от всякого мусора типа www
+
+    // Получаем текущий домен очищенный от www
     static function getCurrentDomainByServerHttpHost()
         {
         // Пытаемся получить домен по SERVER_NAME
@@ -53,8 +54,9 @@ class core
                 return $_SERVER['HTTP_HOST'];
                 }
             }
-        // но если скрипт запускающих кухню - консольный (например крон), 
-        // то скорее всего придётся получать по $argv[1] переданному из вне
+        // але якщо ініціатор консольний (наприклад крон), 
+        // то доведеться $argv[1] переданному из вне
+        // Поки не зробив
 
         return false;
         }
@@ -64,17 +66,17 @@ class core
     static function getSiteByDomain($domain)
         {
         $query = "SELECT * FROM `" . load::$sites . "` WHERE `url` = '$domain' LIMIT 1";
-        $site = core::$db->query($query)->fetch_assoc();
+        $site = self::$db->query($query)->fetch_assoc();
         if (empty($site)) {
             return false;
             }
         return $site;
         }
 
-        
-    // Функция позволяет очистить текст от опасных всяких символов. 
-    // Проганяем текст по полной через него в идеале всегда даже то, что вношу я
-    static function cutDangerous($text, $trim = true, $addslashes = true, $strip_tags = true, $escape = true)
+
+    // Функция позволяет очистить текст от уязвимостей
+    // Проганяем текст через эту функцыю в идеале всегда
+    static function safety($text, $trim = true, $addslashes = true, $strip_tags = true, $escape = true)
         {
         if ($trim) {
             $text = trim($text);
@@ -153,7 +155,7 @@ class core
         // И проверяем не превышен ли лимит отправок формы за день
         if ($isAdmin !== true) {
             // Пишем попытку отправить форму
-            $iptest = core::IPspamProtection($ip, $host, $response);
+            $iptest = self::IPspamProtection($ip, $host, $response);
             if ($iptest['black'] === 'black') {
                 echo json_encode(array("otvet" => "block", "response" => "You exceeded the number of permissible requests for today. There is a suspicion that you are a robot."));
                 exit;
@@ -166,50 +168,8 @@ class core
 
 
 
-    // КОНЕЦ ВСЕГО ЧТО СВЯЗАНО С ЗАЩИТОЙ ОТ ВЗЛОМА ЧЕГО УГОДНО В СИСТЕМЕ И ЛОГИРОВАНИЕМ ПРОБЛЕМ
-// ДАЛЕЕ:
-// ФУНКЦИИ КОТОРЫЕ ПРОИЗВОДЯТ ТЕ ИЛИ ИНЫЕ РАСЧЁТЫ: С ДАТАМИ, ВОЗРАСТОМ И Т.П.
 
-    // Расчитываем разницу между датами
-    // Використовувалось в кредитній схемі
-    static function getDateDiff($dateFrom, $dateTo)
-        {
-
-        // проверяем что это даты
-        if (!($dateFrom instanceof \DateTime) or !($dateTo instanceof \DateTime)) {
-            return "[не возможно рассчитать]";
-            }
-
-        // проверяем что дата начала не больше даты конца
-        if ($dateFrom > $dateTo) {
-            return "[не возможно рассчитать]";
-            }
-        // ну и вдруг они одинаковы
-        if ($dateFrom == $dateTo) {
-            return "в ту же секунду";
-            }
-
-        $seconds = $dateTo->getTimestamp() - $dateFrom->getTimestamp();
-
-        $days = floor($seconds / (60 * 60 * 24));
-        $hours = floor(($seconds - ($days * 60 * 60 * 24)) / (60 * 60));
-
-        $a = [];
-
-        if ($days > 0) {
-            $a[] = "{$days} дней";
-            }
-
-        if ($hours > 0) {
-            $a[] = "{$hours} часов";
-            }
-
-        return implode(' ', $a);
-
-        }
-
-
-    // Чи більше друге число за перше на ...
+    // Чи більше друге число за перше  ...
     static function isValidAgeRange($minAge, $maxAge)
         {
         $num1 = intval($minAge);
@@ -245,38 +205,6 @@ class core
             }
         }
 
-    // КОНЕЦ ФУНКЦИЙ КОТОРЫЕ ПРОИЗВОДЯТ ТЕ ИЛИ ИНЫЕ РАСЧЁТЫ: С ДАТАМИ, ВОЗРАСТОМ И Т.П.
-// ДАЛЕЕ:
-// ФУНКЦИИ СКЛОНЕНИЯ СЛОВ плюс ОПРЕДЕНИЯ И КОРРЕКТНОСТИ: ПОЛа, ИНН, СНИЛС, ПАСПОРТа
-
-
-    // Определение валюты клиента по номеру его телефона
-    // Использую редко (только для неавторизованных клиентов) 
-    // ибо может делать лишний запрос к базе в то время как getValFromCountry делает только один
-    static function getValFromPhone($phone)
-        {
-
-        if (empty($phone))
-            return false;
-        $code = substr($phone, 0, 4);
-
-        $query = "SELECT `ISO_4217` FROM `countries` WHERE `mobileCodes` LIKE '%" . $code . "%' LIMIT 1";
-        $val = self::$db->query($query)->fetch_array(MYSQLI_ASSOC);
-        // Если страну получить не удалось, пробуем ещё искать с более коротким кодом
-        if (empty($val)) {
-            $code = substr($code, 0, -1);
-            $query = "SELECT `ISO_4217` FROM `countries` WHERE `mobileCodes` LIKE '%" . $code . "%' LIMIT 1";
-            $val = self::$db->query($query)->fetch_array(MYSQLI_ASSOC);
-            }
-
-        // подобное возникать не должно и в случае возникновения админ должен уведомляться
-        if (empty($val)) {
-            return false;
-            }
-        // Если всё ок - отдаём страну
-        return $val['ISO_4217'];
-        }
-
 
 
     // Определение валюты клиента по стране
@@ -301,20 +229,9 @@ class core
         return $val['ISO_4217'];
         }
 
-    // Функция позволяющая корректно дописывать после возраста слово года-год-лет
-    static function ageInclination($age, $country)
-        {
-        $lastInt = substr($age, -1);
-        if ($lastInt >= 2 && $lastInt <= 4) {
-            return mova::lg($country, 'роки', 'года', 'years');
-            } elseif ($lastInt == 1) {
-            return mova::lg($country, 'рік', 'год', 'year');
-            } else {
-            return mova::lg($country, 'років', 'лет', 'years');
-            }
-        }
 
-    // більш універсальна за ту що вище і підходить для будь чого
+
+    // коректно дописує за цифрами 'раз раза разів'
     // Але з мовами є нюанси... 
     // Більше заточена під слов'янські мови поки що
     static function ints($int, $str)
@@ -342,7 +259,37 @@ class core
                 }
             }
         }
-
+    // По факту дублікат тої що вище...
+    // Функція грамотно підставляє правильно схилену валюту
+    // Потрібно використовувати частіше, але я забиваю...
+    static function declension($digit, $expr, $onlyword = false)
+        {
+        if (!is_numeric($digit)) {
+            return $digit;
+            }
+        if (!is_array($expr)) {
+            $expr = array_filter(explode(' ', $expr));
+            }
+        if (empty($expr[2])) {
+            $expr[2] = $expr[1];
+            }
+        $i = preg_replace('/[^0-9]+/s', '', $digit) % 100;
+        if ($onlyword) {
+            $digit = '';
+            }
+        if ($i >= 5 && $i <= 20) {
+            $res = $digit . ' ' . $expr[2];
+            } else {
+            $i %= 10;
+            if ($i == 1)
+                $res = $digit . ' ' . $expr[0];
+            elseif ($i >= 2 && $i <= 4)
+                $res = $digit . ' ' . $expr[1];
+            else
+                $res = $digit . ' ' . $expr[2];
+            }
+        return trim($res);
+        }
 
 
     // Функция переводит в человекочитаемый формат любую дату из базы данных SQL
@@ -365,48 +312,6 @@ class core
 
 
 
-
-
-    // Получаем ПОЛ по ОТЧЕСТВУ
-    static function getSexByFIO($otc)
-        {
-        // Выходим если отчество не передано
-        if (empty($otc)) {
-            return false;
-            }
-
-        // убераем пробелы вначале и в конце строки, переводим все в нижний регистр
-        $otc = strtolower(trim($otc));
-
-        // стоит учитывать что грузинсике отчества могут выглядеть так Петрес-дзе
-        // окончание -дзе указывает на мужской пол
-        // Тюркские отчества могут выглядеть так Салим-оглы и Салим-кызы
-        // Вот полный перечень:
-        // Мужские -оглы, -уулу, -улы,
-        // Женские -кызы, -гызы
-        // ибн и бен и бар(мужские), бинт (женские) - это части отчеств которые идут перед ними у Арабских и еврейских всяких народностей
-        // Это может помогать определять пол таких залётных ибо они бывают
-        if (mb_substr($otc, -2) == 'ич') {
-            return 'male';
-            } elseif (mb_substr($otc, -2) == 'на') {
-            return 'female';
-            } elseif (mb_substr($otc, -3) == 'дзе') {
-            return 'male';
-            } elseif (mb_substr($otc, -4) == 'оглы') {
-            return 'male';
-            } elseif (mb_substr($otc, -3) == 'улу') {
-            return 'male';
-            } elseif (mb_substr($otc, -3) == 'улы') {
-            return 'male';
-            } elseif (mb_substr($otc, -4) == 'кызы') {
-            return 'female';
-            } elseif (mb_substr($otc, -4) == 'гызы') {
-            return 'female';
-            }
-        // если ничего не получилось - выходим
-        return false;
-        }
-
     // Повертає оновлений рядок 
     // (додає в рядок новий елемент через кому, якщо його там ще не було до цього)
     // Та повідомляє чи був він там чи ні
@@ -415,22 +320,22 @@ class core
         // Перетворюємо рядок в масив
         $ids_array = array_filter(explode(',', $ids));
 
-    // Початковий стан зміненої змінної
-    $is_modified = false;
+        // Початковий стан зміненої змінної
+        $is_modified = false;
 
-    // Перевіряємо, чи немає в переліку нового id
-    if (!in_array($new_id, $ids_array)) {
-        // Якщо немає, додаємо новий id
-        $ids_array[] = $new_id;
-        $is_modified = true;  // Встановлюємо, що рядок був змінений
-    }
+        // Перевіряємо, чи немає в переліку нового id
+        if (!in_array($new_id, $ids_array)) {
+            // Якщо немає, додаємо новий id
+            $ids_array[] = $new_id;
+            $is_modified = true;  // Встановлюємо, що рядок був змінений
+            }
 
-    // Перетворюємо масив назад у рядок
-    $updated_ids = implode(',', $ids_array);
+        // Перетворюємо масив назад у рядок
+        $updated_ids = implode(',', $ids_array);
 
-    // Повертаємо масив з оновленим рядком і інформацією про зміну
-    return [$updated_ids, $is_modified];
-}
+        // Повертаємо масив з оновленим рядком і інформацією про зміну
+        return [$updated_ids, $is_modified];
+        }
 
 
 
@@ -440,7 +345,7 @@ class core
         // получаем из базы все регионы
         $result = self::$db->query("SELECT `id`,`metropolis` from `regions` where `region`='{$name}'");
         $region = $result->fetch_array(MYSQLI_ASSOC);
-		$result->close();
+        $result->close();
         if ($region) {
             return $region;
             } else {
@@ -450,19 +355,19 @@ class core
             }
         }
 
-	static function getRegionById($id)
+    static function getRegionById($id)
         {
         // получаем из базы все регионы
         $result = self::$db->query("SELECT `region`,`metropolis` from `regions` where `id`='{$id}'");
         $region = $result->fetch_array(MYSQLI_ASSOC);
-		$result->close();
+        $result->close();
         if ($region) {
             return $region;
             } else {
             return false;
             }
         }
-		
+
     // Функція транслітерації
 // Планується використовувати: 
 // 1) для транслітерації перед нечітким пошуком за назвою
@@ -473,7 +378,7 @@ class core
 
         $str = mb_strtolower(trim($str));
         $tr = array(
-           " " => "_",
+            " " => "_",
             "'" => "",
             "Ї" => "YI",
             "ї" => "yi",
@@ -531,11 +436,11 @@ class core
 
 
 
-        if(ctype_digit($region) === true){
+        if (ctype_digit($region) === true) {
             $search = "`id`='{$region}'";
-        } else {
+            } else {
             $search = "`country`='{$country}' AND `region`='{$region}'";
-        }
+            }
         // запашиваем запись в базе по назві регіону і в ідеалі по країні
         // Можна і без країни, але 
         // гіпотетично можемо отримати проблему якщо в різних країнах якийсь регіон буде називаться абсолютно однаково...
@@ -548,12 +453,12 @@ class core
 
         // если запись найдена добавим
         if (!empty($info["metropolis"])) {
-			// по умолчанию список городов пустой
-			$cities = [];
+            // по умолчанию список городов пустой
+            $cities = [];
             $cities[] = $info["metropolis"];
             } else {
-				return false;
-			}
+            return false;
+            }
         //
         if (!empty($info["satellites"])) {
             $otherMista = explode(",", $info["satellites"]);
@@ -567,29 +472,30 @@ class core
         // Та сортуємо за алфавітом
         $resultDo = self::arrayСleaning($ottrim, $filter, $locale, $nf);
 
-        
+
 
         return $resultDo;
         }
 
     // Отримуємо локаль (здебільшого на початку використовую для корректного сортування за алфавітом)
-    static function getLocal($country){
+    static function getLocal($country)
+        {
         if ($country == 'gb' or $country == 'en' or $country == 'us') {
             return 'en_GB';
-        } else if ($country == 'ru') {
+            } else if ($country == 'ru') {
             return 'ru_RU';
-        } else if($country == 'ua' or $country == 'uk'){
+            } else if ($country == 'ua' or $country == 'uk') {
             return 'uk_UA';
-        } else  {
+            } else {
             return 'uk_UA';
-        }
-        
-    }
+            }
 
-    // Функция которую добавил из-за конфликта РФ с Украиной
-    // Есть области, регионы и города 
-    // в которых так или иначе невозможно организовать ДОСТАВКУ ТОВАРА
-    // В связи с этим иногда нужно сверять со arrayСleaning из базы и для этого есть такая вот простая функция
+        }
+
+    // Функція, яку додав через напад РФ
+    // Є області, регіони та міста
+    // у яких так чи інакше неможливо організувати ДОСТАВКУ ТОВАРУ
+    // У зв'язку з цим іноді потрібно видаляти зі списку регіонів або міст ті, в яких зараз працювати неможливо
     static function problemRegion($obl, $metropolis, $erReg)
         {
 
@@ -627,34 +533,6 @@ class core
         return $resultArray;
         }
 
-
-
-    // Функция разбирает ФИО на фамилию имя отчество и отдаёт массив с результатами который можно вывести в переменных так
-    // list($family, $firstname, $middlename) = self::splitClientName($client['name']);
-    // Стоит понимать, что у некоторых народностей отчества сложные
-    // https://ru.wikipedia.org/wiki/%D0%9E%D1%82%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%BE
-    // ибн и бен и бар(мужские), бинт (женские) - это части отчеств которые идут перед ними у Арабских и еврейских всяких народностей
-    // Это может помогать определять где находится отчество и таких залётных и правильно его сохранять в базу
-    // Также стоит учитывать что грузинсике отчества могут выглядеть так Петрес-дзе
-    // окончание -дзе указывает на мужской пол
-    // Тюрксике отчества могут выглядеть так Салим-оглы и Салим-кызы
-    // Вот полный перечень окончаний тюркских:
-    // Мужские -оглы, -уулу, -улы,
-    // Женские -кызы, -гызы
-    // То есть у грузинов и тюркских народов идут окончания после отчеств 
-    // при этом они их и через пробел могут ставить и через ТИРЕ и это надо интелектуально понимать
-    // В некоторых ситуациях нужно посылать мне письмо на допроверку ФИО для того чтобы я вручную корректно разбил ФИО:
-    // В частности если отчество заканчивается не на -ич или -на											   
-    static function splitClientName($name)
-        {
-        $name = trim($name);
-        // в фио могут быть апострофы: '
-        $fio = explode(" ", $name, 3);
-        if (empty($fio[2])) {
-            $fio[2] = false;
-            }
-        return $fio;
-        }
 
     // Закрываем звёздами часть вывода (Использую для частичного скрытия имён и фио)
     static function stars($name)
@@ -700,66 +578,14 @@ class core
         }
 
 
-    // ФУНКЦИИ МАНИПУЛЯЦИЙ С ТАБЛИЦАМИ, ЯЧЕЙКАМИ И КОЛОНКАМИ, А ТАКЖЕ ПАРСИНГОМ, РАЗБОРОМ И АНАЛИЗОМ ИХ СОДЕРЖИМОГО
-
-
-    // Проверяем есть ли в заданной таблице название колонки
-    static function checkDbTableField($table, $field)
-        {
-
-        $result = self::$db->query("SHOW COLUMNS FROM {$table}");
-        $listColums = [];
-        while ($e = $result->fetch_array(MYSQLI_ASSOC)) {
-            $listColums[$e["Field"]] = 1;
-            }
-
-        if ($listColums[$field]) {
-            return true;
-            } else {
-            // О ситуации не нужно сообщать, а 
-            return false;
-            }
-        }
-
-    // Создаем в заданной таблице название колонки
-    // $type - datetime - для поля DATETIME
-    // $type - text - для поля TEXT
-    static function insertDbTableField($table, $field, $type)
-        {
-
-        $result = self::$db->query("SHOW COLUMNS FROM {$table}");
-        $lastColum = '';
-        $listColums = [];
-        while ($e = $result->fetch_array(MYSQLI_ASSOC)) {
-            $listColums[$e["Field"]] = 1;
-            $lastColum = $e["Field"];
-            }
-        /*
-         * Проверяем есть ли поле в таблице, если нет - создаем
-         */
-        if (!$listColums[$field]) {
-            if ($type == 'datetime') {
-                self::$db->query("ALTER TABLE `{$table}` ADD `{$field}` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00'  COMMENT '' AFTER `{$lastColum}`;");
-                } else {
-                self::$db->query("ALTER TABLE `{$table}` ADD `{$field}` TEXT NULL AFTER `{$lastColum}`;");
-                }
-            }
-        }
-
-
-
-
 
     // Функция обновления записей
     static function updateRecord($table, $record, $where)
         {
-        // Защищаем базу от неполных (некорректно сформированных) запросов
         if (empty($table))
             return false;
-
         if (empty($record))
             return false;
-
         if (empty($where))
             return false;
 
@@ -786,15 +612,11 @@ class core
     // Функция вставки
     static function insertRecord($table, $record, $where = '')
         {
-
-        // Защищаем базу от неполных (некорректно сформированных) запросов
         if (empty($table))
             return false;
 
         if (empty($record))
             return false;
-
-
 
         // Формируем строки из массива
         $str_fields = '';
@@ -873,93 +695,12 @@ class core
 
 
 
-    // Собираем всё всё всё, чтобы логировать ордер
-    static function FiatOrderLog($email, $st, $admin, $card, $status, $amount, $url, $requisites, $gate, $inGateID, $secret, $id = false)
-        {
-        $date = date('Y-m-d H:i:s');
-        $browser = 'The recording was made from the admin browser';
-        $fingerprint = 'nope';
-        $ip = false;
-        $ag = false;
-        if ($id == false) {
-            // Если действие совершает клиент
-            if (ident::isAdmin() !== true) {
-                $browser = new Browser();
-                if (!empty($browser)) {
-                    $ag = $browser->getPlatform() . ", " . $browser->getBrowser() . ", " . $browser->getVersion();
-                    } else {
-                    $ag = 'Not identified';
-                    }
-                if ($st != 'shop') {
-					// ip треба почати передавати в функцію
-                    // $ip = geo::GetIP();
-                    }
-                if (!empty($_COOKIE["fp"])) {
-                    $fingerprint = $_COOKIE["fp"];
-                    } else {
-                    $fingerprint = 'For some reason missing';
-                    }
-                }
-
-            $record = array(
-                "email" => $email,
-                "date" => $date,
-                "FingerPrint" => $fingerprint, // Отпечаток браузера сохраняем тоже
-                "amount" => $amount, // сумма платежа
-                // "inbtc" => $inbtc, // чтобы сохранять сколько это в битках нужно дополнительно передавать $opderPay['to_amount']
-                "status" => $status, // статус платежа
-                "ip" => $ip, // Сохраняем максимально достоверный айпишник КЛИЕНТА
-                "Browser" => $ag, // Сохраняем операционку, браузер и его версию
-                "url" => $url,
-                "urltest" => 'need', // Обязательно Отмечаем как требующий проверки
-                "gate" => $gate,
-                "inGateID" => $inGateID,
-                "secret" => $secret,
-                "requisites" => $requisites, // Реквизиты на которые клиент должен внести оплату
-                "lastcard" => $card
-            );
-
-            $id = self::insertRecord(load::$paid_fiat, $record);
-            return $id;
-            } else {
-            $update = "`status` = '" . $status . "', `lasttry` = NOW(), `try` = `try` + 1";
-            // Записываем всю инфу по попытке
-            if ($url != '') {
-                $update .= ", `url` = '" . $url . "'";
-                }
-            if ($status == 'okPay') {
-                $update .= ", `datepay` = NOW(), `urltest` = 'ok'";
-                } else {
-                $update .= ", `urltest` = ''";
-                }
-            if ($card != '') {
-                $update .= ", `lastcard` = '" . $card . "'";
-                }
-            if ($inGateID != '') {
-                $update .= ", `inGateID` = '" . $inGateID . "'";
-                }
-
-            $okUspeh = core::$db->query("UPDATE `" . load::$paid_fiat . "` SET " . $update . " WHERE `id` = '" . $id . "'");
-            // var_dump($okUspeh);
-            return true;
-            }
-
-        }
-
-
-
 
     // Новая функция добавления комментария/тикета/лога по партнёру
     // В случае успешного добавления строки возвращает её идентификатор
     // При наличии четвёртого параметра - редактирует status і answer (а не добавляет строку)
     static function plog($email, $comment, $status = '', $id = false, $st = false, $partner = false)
         {
-			
-        // Если это заёмщик, не партнёр, то возможно в данном случае нужно писать другой тип комментариев
-        if (!empty($st) and $st == 'credit') {
-            return credit::clog($email, $comment, $status, $id);
-            }
-
         if ($id == false) {
             // В любом случае приводим мыло к типовому варианту
             $stem = self::buildStandartEmail($email);
@@ -972,9 +713,9 @@ class core
                     } else {
                     $ag = 'Not identified';
                     }
-					// ip треба почати передавати в функцію
-                    // $ip = geo::GetIP();
-					$ip = false;
+                // ip треба почати передавати в функцію
+                // $ip = geo::GetIP();
+                $ip = false;
                 if (!empty($_COOKIE["fp"])) {
                     $fp = $_COOKIE["fp"];
                     } else {
@@ -1089,7 +830,7 @@ class core
         {
 
         $query = "SELECT `url` FROM `" . load::$sites . "` WHERE `active` = 'default' LIMIT 1";
-        $record = core::$db->query($query)->fetch_assoc();
+        $record = self::$db->query($query)->fetch_assoc();
         $hostdef = $record['url'];
         return $hostdef;
 
@@ -1158,12 +899,11 @@ class core
     static public function testRegion($region, $mst, $email, $st)
         {
         // Выходим если регион не указан
-        if ($region == '') {
+        if ($region == '') 
             return true;
-            }
         // надеюсь не будет возникать ибо нужно будет вручную править регион и mst клиента
         if ($mst != 'region_invalid') {
-            $FindRegion = core::$db->query("SELECT * FROM regions WHERE `region`='{$region}'");
+            $FindRegion = self::$db->query("SELECT * FROM regions WHERE `region`='{$region}'");
             // Если Регион клиента не найден в базе данных
             // АДМИНА уведомляем, клиента НЕ отвлекаем
             if (!$FindRegion) {
@@ -1173,9 +913,9 @@ class core
                     $table = load::$partners;
                     }
                 // Ставим в базе признак mst = region_invalid чтобы функция не заспамила нас письмами
-                core::$db->query("UPDATE " . $table . " SET `mst` = 'region_invalid' WHERE `email` = {$email}");
+                self::$db->query("UPDATE " . $table . " SET `mst` = 'region_invalid' WHERE `email` = {$email}");
                 // Логируем и создаём тикет
-                self::plog($email, 'Регион клиента не описан в базе данных! Нужно исправить регион И вручную отредактировать mst клиента', 'need', false, $st);
+                self::plog($email, "The client's region is not described in the database! You need to fix the region AND manually edit mst", 'need', false, $st);
                 return false;
                 }
             return true;
@@ -1252,52 +992,6 @@ class core
         }
 
 
-    // get geo-data from image
-    static public function get_image_location($file)
-        {
-        if (is_file($file)) {
-            $info = exif_read_data($file);
-            if ($info !== false) {
-                $direction = array('N', 'S', 'E', 'W');
-                if (
-                    isset($info['GPSLatitude'], $info['GPSLongitude'], $info['GPSLatitudeRef'], $info['GPSLongitudeRef']) &&
-                    in_array($info['GPSLatitudeRef'], $direction) && in_array($info['GPSLongitudeRef'], $direction)
-                ) {
-
-                    $lat_degrees_a = explode('/', $info['GPSLatitude'][0]);
-                    $lat_minutes_a = explode('/', $info['GPSLatitude'][1]);
-                    $lat_seconds_a = explode('/', $info['GPSLatitude'][2]);
-                    $lng_degrees_a = explode('/', $info['GPSLongitude'][0]);
-                    $lng_minutes_a = explode('/', $info['GPSLongitude'][1]);
-                    $lng_seconds_a = explode('/', $info['GPSLongitude'][2]);
-
-                    $lat_degrees = $lat_degrees_a[0] / $lat_degrees_a[1];
-                    $lat_minutes = $lat_minutes_a[0] / $lat_minutes_a[1];
-                    $lat_seconds = $lat_seconds_a[0] / $lat_seconds_a[1];
-                    $lng_degrees = $lng_degrees_a[0] / $lng_degrees_a[1];
-                    $lng_minutes = $lng_minutes_a[0] / $lng_minutes_a[1];
-                    $lng_seconds = $lng_seconds_a[0] / $lng_seconds_a[1];
-
-                    $lat = (float) $lat_degrees + ((($lat_minutes * 60) + ($lat_seconds)) / 3600);
-                    $lng = (float) $lng_degrees + ((($lng_minutes * 60) + ($lng_seconds)) / 3600);
-                    $lat = number_format($lat, 7);
-                    $lng = number_format($lng, 7);
-
-                    //If the latitude is South, make it negative. 
-                    //If the longitude is west, make it negative
-                    $lat = $info['GPSLatitudeRef'] == 'S' ? $lat * -1 : $lat;
-                    $lng = $info['GPSLongitudeRef'] == 'W' ? $lng * -1 : $lng;
-
-                    return array(
-                        'lat' => $lat,
-                        'lng' => $lng
-                    );
-                    }
-                }
-            }
-
-        return false;
-        }
 
     // Считаем сколько файлов по факту лежит в папке и выводим
     static public function dirToArray($dir)
@@ -1320,33 +1014,6 @@ class core
             }
         return $result;
         }
-
-
-
-
-    //
-    static public function getFieldsFromTableByType($table, $type)
-        {
-
-        if (empty($table) or empty($type))
-            return false;
-
-        $query = 'SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = \'' . self::$database . '\' AND TABLE_NAME = \'' . $table . '\'';
-        $result = self::$db->query($query);
-
-        if (empty($result))
-            return false;
-
-        $fields = array();
-
-        while ($record = $result->fetch_assoc()) {
-            if ($record['DATA_TYPE'] == $type)
-                $fields[] = $record['COLUMN_NAME'];
-            }
-
-        return $fields;
-        }
-
 
 
 
@@ -1396,29 +1063,6 @@ class core
             var_dump($str);
             echo '<br>';
             }
-        }
-
-
-    static function whatTab($st, $needpage)
-        {
-        $tabs = ['0' => false, '1' => false, '2' => false, '3' => false, '4' => false, '5' => false];
-        // для удобства клиента
-        // Играемся с табами на главной странице 
-        // Чисто чтобы при перезагрузке страницы ему показывался именно последний посещённый им таб
-        // Сначала думал на js делать переходы
-        if (!empty($_COOKIE['tab_' . $needpage])) {
-            if (strlen($_COOKIE['tab_' . $needpage]) == 1) {
-                $str = $_COOKIE['tab_' . $needpage];
-                } else {
-                $str = substr($_COOKIE['tab_' . $needpage], -1); // Використовуємо substr, щоб отримати останній символ рядка
-                }
-            if (array_key_exists($str, $tabs)) {
-                $tabs[$str] = 'nowtabtov';
-                }
-            } else {
-            $tabs[1] = 'nowtabtov';
-            }
-        return $tabs;
         }
 
 
@@ -1530,8 +1174,7 @@ class core
             }
         // Формируем дату
         $starttime = date('Y-m-d H:i:s', strtotime($holdtime));
-        //core::ec($starttime);
-        $result = core::$db->query("SELECT `id` FROM `dialogue` WHERE `$messendger`='$contact' and `essence`='$essence' and `date` >= '" . $starttime . "'");
+        $result = self::$db->query("SELECT `id` FROM `dialogue` WHERE `$messendger`='$contact' and `essence`='$essence' and `date` >= '" . $starttime . "'");
         if ($result->num_rows > 0) {
             return 'stop';
             }
@@ -1540,6 +1183,7 @@ class core
 
     // РОбить з одномірного масиву рядок
     // Допомогає з массиву з помилкою сформувати рядок який можна відправити наприклад в телегу адміну
+    // Э близнюк в tg:: але це нормально
     private static function arrayToKeyValueString($array)
         {
         // Перевірка, чи масив не пустий і є асоціативним
@@ -1556,7 +1200,7 @@ class core
         // Об'єднуємо всі пари в один рядок
         return implode(',', $keyValuePairs);
         }
-        
+
     /**
      * Отримуємо курс цільової пари
      * param $from НЕ може бути crypto
@@ -1564,12 +1208,12 @@ class core
     static function getObmenInfo($from, $for)
         {
         $query = "SELECT * FROM `currency_konvert` WHERE `from` = '{$from}' and `for` = '{$for}'";
-        $ObmenInfo = core::$db->query($query)->fetch_assoc();
+        $ObmenInfo = self::$db->query($query)->fetch_assoc();
         if (empty($ObmenInfo)) {
             // Про всяк пробуємо навпаки
             // Це тупо, але не критично, бо рідко виникатимо якщо завжди пам'ятати що $from НЕ може бути crypto
             $query = "SELECT * FROM `currency_konvert` WHERE from = '{$for}' and for = '{$from}'";
-            $ObmenInfo = core::$db->query($query)->fetch_assoc();
+            $ObmenInfo = self::$db->query($query)->fetch_assoc();
             if (empty($ObmenInfo))
                 return false;
 
@@ -1578,36 +1222,7 @@ class core
         return $ObmenInfo;
         }
 
-    // Функция грамотно подставляет правильно склонённую валюту
-// Нужно использовать чаще, но я забиваю...
-    static function declension($digit, $expr, $onlyword = false)
-        {
-        if (!is_numeric($digit)) {
-            return $digit;
-            }
-        if (!is_array($expr)) {
-            $expr = array_filter(explode(' ', $expr));
-            }
-        if (empty($expr[2])) {
-            $expr[2] = $expr[1];
-            }
-        $i = preg_replace('/[^0-9]+/s', '', $digit) % 100;
-        if ($onlyword) {
-            $digit = '';
-            }
-        if ($i >= 5 && $i <= 20) {
-            $res = $digit . ' ' . $expr[2];
-            } else {
-            $i %= 10;
-            if ($i == 1)
-                $res = $digit . ' ' . $expr[0];
-            elseif ($i >= 2 && $i <= 4)
-                $res = $digit . ' ' . $expr[1];
-            else
-                $res = $digit . ' ' . $expr[2];
-            }
-        return trim($res);
-        }
+
 
     // Приклад використання
     // $directory = '/шлях/до/вашої/папки';
@@ -1717,7 +1332,7 @@ class core
 
         // Порівнюємо часи
         // 
-        //core::vd($checkDateTime);
+        //self::vd($checkDateTime);
         if ($tip == 'start') {
             if ($checkDateTime < $currentDateTime) {
                 return true;
