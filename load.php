@@ -53,8 +53,8 @@ class load {
 
     // ! Бажано нижче не чіпай без необхідності
 
-    // Статические переменные (не путать с константами), содержат названия таблиц
-    // Заполняются во время выбора режима работы
+    // Static variables , contain table names
+    // Filled in when selecting the operating mode
 
     static $ip_log = '';
     static $sites = '';
@@ -75,17 +75,14 @@ class load {
     static $tg_bundle = '';
     static $tg_service = '';
     static $tg_deeplink = '';
-    // Глобальный режим работы
+    // Global operation mode
     static $MODE = '';
 
 
-    // Устанавливаем режим работы
+    // Setting the operating mode
     static public function setMode($mode = 'WORK') {
-        self::$MODE = $mode;
-	// При добавлении сюда новой таблицы, нужно не забывать её ОБЯЗАТЕЛЬНО "объявлять" выше в списке статичных переменных !!!!
-	// !!!!!!!!!!!!!!!!!!!!!!!!!							 
+        self::$MODE = $mode;					 
         switch ($mode) {
-            // Рабочий
             case 'WORK':
             default:
 				self::$ip_log = 'ip_log';
@@ -108,13 +105,9 @@ class load {
                 self::$tg_service = 'tg_service';
                 self::$tg_deeplink = 'tg_deeplink';
 
-                
-
                 ini_set('display_errors', 0);
-
                 break;
 
-            // Тестовый
             case 'TEST':
 				self::$ip_log = 'ip_log';
                 self::$sites = 'sites';

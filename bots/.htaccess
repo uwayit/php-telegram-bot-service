@@ -1,7 +1,13 @@
 RewriteEngine Off
-<FilesMatch "\.(php|txt)$">
+<FilesMatch "\.(php|txt|sql)$">
     Require all denied
 </FilesMatch>
 <Files "hook.php">
+    Require all granted
+</Files>
+<Files "base_hook.php">
+    Require all granted
+</Files>
+<Files "full_hook.php">
     Require all granted
 </Files>

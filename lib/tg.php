@@ -37,13 +37,13 @@ class tg
     if ($bundle['kod'] != '' and $bundle['kod'] != 'ok' and $timepayt > $timeEnd) {
       $infokod = array();
       $infokod['kod'] = $bundle['kod'];
-      $infokod['kodtime'] = date('d.m.Yг. H:i ', $timepayt);
+      $infokod['kodtime'] = date('H:i d.m.Y', $timepayt);
       } else {
       // Если код проверки протух, то...
       // Треба надсилати новий код!
       $infokod['needre'] = true;
-      // Cбрасываем счётчик количества попыток ввода кода
-      core::$db->query("UPDATE `" . Co::$tg_bundle . "` SET `trykod`= '0' WHERE `from_id`='" . $bundle['from_id'] . "' and `bot`='" . $bundle['bot'] . "'");
+      // Скидаємо лічильник кількості спроб введення коду
+      core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `trykod`= '0' WHERE `from_id`='" . $bundle['from_id'] . "' and `bot`='" . $bundle['bot'] . "'");
       
     }
     return $infokod;
@@ -56,7 +56,7 @@ class tg
     $randkod = mt_rand(30010, 98980);
     // если передано мыло, то вносим его в базу
     if ($email != false) {
-      $user_key = md5($email . Co::SECURITY);
+      $user_key = md5($email . load::SECURITY);
       $user_key_to_base = md5($user_key);
       $insem = "`email`='" . $email . "',`user_key`='" . $user_key_to_base . "',";
       } else {
@@ -99,36 +99,17 @@ class tg
       }
     $bot->reply($texts);
     // Сохраняем мыло,юзеркей и код
-    $qw = "UPDATE `" . Co::$tg_bundle . "` SET {$insem} `kod`='" . $randkod . "',`kodtime`=NOW(), `trykod`= '0', `country` = '" . $aco . "' WHERE `from_id`='" . $chat . "' and `bot`='" . $bi['name'] . "'";
+    $qw = "UPDATE `" . load::$tg_bundle . "` SET {$insem} `kod`='" . $randkod . "',`kodtime`=NOW(), `trykod`= '0', `country` = '" . $aco . "' WHERE `from_id`='" . $chat . "' and `bot`='" . $bi['name'] . "'";
     core::$db->query($qw);
-    // Удаляем мыло из таблицы с диплинками
-    core::$db->query("DELETE FROM `" . Co::$tg_deeplink . "` WHERE `email` = '" . $email . "'");
-    exit('ok');
-    }
-
-
-  // Ищем юзера в таблице с клиентами
-  // и связываем две записи clients и bundle между собой
-  // ЭТО НУЖНО ТОЛЬКО В КРЕДИТНОЙ СХЕМЕ, ЧТОБЫ можно было ДЕЛАТЬ РАССЫЛКУ в кредитной схеме
-  static function updateTgClient($email, $id, $st = false)
-    {
-    if ($st == 'credit') {
-      return false;
-      }
-    $stem = core::buildStandartEmail($email);
-    $client = ident::getClientByEmail($email);
-    if ($client and $client['TelegaID'] != '') {
-      // Хм, незнаю как быть в данном случае, но вроде как просто устанавливаем новую связь...
-      }
-    // Сохраняем 
-    core::$db->query("UPDATE `" . Co::$clients . "` SET `TelegaID` = '{$id}' WHERE `email`='{$stem}'");
-    return true;
+    // Видаляємо email з таблиці з диплінками
+    core::$db->query("DELETE FROM `" . load::$tg_deeplink . "` WHERE `email` = '" . $email . "'");
+    return date('H:i d.m.Y', time());
     }
 
   static function getTgIdById($id, $table = false)
     {
     if (empty($table)) {
-      $table = Co::$partners;
+      $table = load::$partners;
       }
     $id = intval($id);
     if (empty($id))
@@ -144,8 +125,8 @@ class tg
   static function getTgIdByEmail($email, $table = false)
     {
     if (empty($table))
-      $table = Co::$partners;
-    if (empty($id))
+      $table = load::$partners;
+    if (empty($email))
       return false;
     $query = 'SELECT `TelegaID` FROM ' . $table . ' WHERE email = ' . $email . ' LIMIT 1';
     $record = core::$db->query($query)->fetch_assoc();
@@ -157,7 +138,7 @@ class tg
   static function getPartnerByTgUser($id, $table = false)
     {
     if (empty($table)) {
-      $table = Co::$partners;
+      $table = load::$partners;
       }
     $id = intval($id);
     if (empty($id))
@@ -174,7 +155,7 @@ class tg
     $id = intval($id);
     if (empty($id))
       return false;
-    $query = "SELECT * FROM `".Co::$tg_service."` WHERE `from_id` = '$id'  LIMIT 1";
+    $query = "SELECT * FROM `".load::$tg_service."` WHERE `from_id` = '$id'  LIMIT 1";
     $record = core::$db->query($query)->fetch_assoc();
     if (empty($record))
       return false;
@@ -366,7 +347,7 @@ class tg
     if ($bot != false) {
       $searchbot = " and `bot`='" . $bot . "'";
       }
-    $result = core::$db->query("SELECT * FROM `" . Co::$tg_bundle . "` WHERE `from_id`='" . $user . "'" . $searchbot);
+    $result = core::$db->query("SELECT * FROM `" . load::$tg_bundle . "` WHERE `from_id`='" . $user . "'" . $searchbot);
     $stroki = $result->num_rows;
     if ($stroki == 0) {
       return false;
@@ -388,11 +369,11 @@ class tg
     {
     // В кредитной схеме тоже нужно вернуть привязку
     if ($st == 'credit') {
-      core::$db->query("UPDATE `" . Co::$clients . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
+      core::$db->query("UPDATE `" . load::$clients . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
       }
-    core::$db->query("UPDATE `" . Co::$partners . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
+    core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
     // В таблице тг аккаунтов нужно пометить аккаунт доступным для рассылок и привязать к эмаил аккаунту
-    core::$db->query("UPDATE `" . Co::$tg_bundle . "` SET `mst` = '',`email`='$email' WHERE `from_id`='{$user}'");
+    core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `mst` = '',`email`='$email' WHERE `from_id`='{$user}'");
 
     return true;
 
@@ -405,7 +386,7 @@ class tg
     {
     $stem = core::buildStandartEmail($email);
     // Ищем только те мыльники которые подтверждены
-    $result = core::$db->query("SELECT * FROM `" . Co::$tg_bundle . "` WHERE `email`='" . $stem . "' and `kod` = 'ok' and `bot`='{$bot}'");
+    $result = core::$db->query("SELECT * FROM `" . load::$tg_bundle . "` WHERE `email`='" . $stem . "' and `kod` = 'ok' and `bot`='{$bot}'");
     $stroki = $result->num_rows;
     if ($stroki == 0) {
       return false;
@@ -422,7 +403,7 @@ class tg
   static function SearchTgByKey($mdkey, $bot)
     {
     // Ищем только те мыльники которые подтверждены
-    $result = core::$db->query("SELECT * FROM `" . Co::$tg_bundle . "` WHERE `user_key`='{$mdkey}' and `kod` = 'ok' and `bot`='{$bot}'");
+    $result = core::$db->query("SELECT * FROM `" . load::$tg_bundle . "` WHERE `user_key`='{$mdkey}' and `kod` = 'ok' and `bot`='{$bot}'");
     if ($result->num_rows == 0) {
       $result->close();
       return false;
@@ -467,38 +448,41 @@ class tg
       // Якщо шукажмо не повну анкету, то видаємо тільки from_id
       $full = "`from_id`";
       }
-    $result = core::$db->query("SELECT $full FROM `" . Co::$tg_bundle . "` WHERE `username`='{$username}' LIMIT 1");
+    $result = core::$db->query("SELECT $full FROM `" . load::$tg_bundle . "` WHERE `username`='{$username}' LIMIT 1");
     if ($result->num_rows == 0)
       return false;
 
     return $result->fetch_array(MYSQLI_ASSOC);
     }
 
-  // Всегда при рассылках и не только, проверяем не забанил ли юзер бота
+  // Всегда при отправках сообщений и не только, проверяем не забанил ли юзер бота
 // если юзер забанил бота, то удаляем его из списка рассылки на следующий раз
-  static function testStatus($chatid, $status, $bot, $type = false)
+  static function testStatus($chatid, $status, $test, $bot, $type = false)
     {
+
+    if ($test == false)
+      return false;
 
     if (!empty($status) and !empty($status['ok']) and !empty($status['description']) and $status['ok'] == false) {
       if ($status['description'] == 'Forbidden: bot was blocked by the user') {
         // В кредитной схеме нужно удалить привязку
         if ($type == 'credit') {
-          core::$db->query("UPDATE `" . Co::$clients . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
+          core::$db->query("UPDATE `" . load::$clients . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
           }
 
         // Видаляємо контакт
         // ПРи вході  в кабінет система запитає в людини її новий контакт
-        core::$db->query("UPDATE `" . Co::$partners . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
+        core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
 
         // В ботосхеме нужно пометить аккаунт НЕдоступным для рассылок
-        core::$db->query("UPDATE `" . Co::$tg_bundle . "` SET `mst` = 'stop' WHERE `from_id`='{$chatid}' and `bot` = '$bot'");
+        core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `mst` = 'stop' WHERE `from_id`='{$chatid}' and `bot` = '$bot'");
         return true;
         }
       // Якщо група стала супергрупою, або змінила ID
       if (is_array($status['parameters']) and !empty($status['parameters']['migrate_to_chat_id'])) {
         // Зберігаємо новий Chat ID групи
         if ($type == 'event') {
-          core::$db->query("UPDATE `" . Co::$club . "` SET `tg_chat` = '{$status['parameters']['migrate_to_chat_id']}' WHERE `tg_chat`='{$chatid}'");
+          core::$db->query("UPDATE `" . load::$club . "` SET `tg_chat` = '{$status['parameters']['migrate_to_chat_id']}' WHERE `tg_chat`='{$chatid}'");
           }
         core::$db->query("UPDATE `tg_group_setup` SET `chat` = '{$status['parameters']['migrate_to_chat_id']}' WHERE `chat`='{$chatid}'");
         // Відаємо новий чат ID аби продублювати повідомлення на нього
@@ -536,26 +520,28 @@ class tg
 
   static function textNeedRegSite($st, $lg, $host)
     {
-
-
     $ua = "Щоб почати користуватися ботом, потрібно спочатку зареєструватися [на сайті](https://" . $host . ")";
     $ru = "Чтобы начать пользоваться ботом, нужно сначала зарегистрироваться [на сайте](https://" . $host . ")";
     $en = "To start use the bot, you must first register on the [website](https://" . $host . ")";
     return mova::lg($lg, $ua, $ru, $en);
     }
 
-  // Отримуємо та Додаємо нову группу (чат) якщо такої ще немає
-  public static function getGroup($chat,$chattype = false, $bot = false, $filter = false)
+  // Отримуємо та Додаємо нову группу (чат) 
+  // якщо такої ще немає
+  // ! Використання кількох ботів цієї платформи для адміністрування одного каналу
+  // створює кілька рядків з одним і тим самим каналом
+  // Поки що в мене не було потреби вирішувати що з цим робити
+  // бо я не додаю кілька ботів адмінами в один й той самий канал
+  public static function getGroup($chat,$chattype = false, $bot = false)
     {
     if ($chattype == "private")
       return false;
-    $result = core::$db->query("SELECT * FROM `tg_group_setup` WHERE `chat`='$chat'");
+    $result = core::$db->query("SELECT * FROM `tg_group_setup` WHERE `chat`='$chat' and `bot_admin`='$bot'");
     if ($result->num_rows == 0) {
-      core::$db->query("INSERT INTO `tg_group_setup` SET `chat`='$chat', `bots`='$bot',`bot_filter`='$filter'");
+      core::$db->query("INSERT INTO `tg_group_setup` SET `chat`='$chat', `bot_admin`='$bot'");
       $gr['id'] = mysqli_insert_id(core::$db);
       $gr['chat'] = $chat;
-      $gr['bots'] = $bot;
-      $gr['bot_filter'] = $filter;
+      $gr['bot_admin'] = $bot;
       return $gr;
       } else {
       return $result->fetch_assoc();
@@ -565,7 +551,7 @@ class tg
   public static function UpdateUserName($username, $id, $old = false)
     {
     if (empty($old) or ($old != $username)) {
-      core::$db->query("UPDATE `" . Co::$tg_bundle . "` SET `username`= '$username' WHERE `id`='$id'");
+      core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `username`= '$username' WHERE `id`='$id'");
       return true;
       }
     return false;

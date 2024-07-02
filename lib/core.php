@@ -74,23 +74,50 @@ class core
         }
 
 
-    // Функция позволяет очистить текст от уязвимостей
-    // Проганяем текст через эту функцыю в идеале всегда
-    static function safety($text, $trim = true, $addslashes = true, $strip_tags = true, $escape = true)
+    // Функція дозволяє очистити текст від уразливостей
+    // Проганяємо текст через цю функцію в ідеалі завжди
+    public static function safety($text, $options = [])
         {
-        if ($trim) {
+        $defaults = [
+            'trim' => true,
+            'addslashes' => true,
+            'strip_tags' => true,
+            'escape' => true,
+            'htmlspecialchars' => true
+        ];
+        $options = array_merge($defaults, $options);
+
+        if ($options['trim']) {
             $text = trim($text);
             }
-        if ($strip_tags) {
+        if ($options['strip_tags']) {
             $text = strip_tags($text);
             }
-        if ($addslashes) {
+        if ($options['addslashes']) {
             $text = addslashes($text);
             }
-        if ($escape) {
+        if ($options['escape'] && self::$db) {
             $text = self::$db->real_escape_string($text);
             }
+        if ($options['htmlspecialchars']) {
+            $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+            }
         return $text;
+        }
+
+    // Функція чистить массив від небезпечних данних
+    public static function safetyCleanArray($data)
+        {
+        $cleanedData = [];
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $cleanedData[$key] = self::safetyCleanArray($value);
+                } else {
+                $cleanedData[$key] = self::safety($value);
+                }
+            }
+
+        return $cleanedData;
         }
 
     //  Записываем попытку отправки формы и проверяем не превышен ли лимит отправок формы за день
@@ -101,8 +128,8 @@ class core
         $firstban = false;
         $blackcount = false;
         $date = date('Y-m-d');
-        // Ставим лимит
-        // В случае большой популярности сервиса, а также в случае усложнения схемы нужно будет увеличить
+        // Ставимо ліміт
+        // У разі великої популярності сервісу, а також у разі ускладнення схеми потрібно буде збільшити
         // Під ускладненням ми розуміємо утримання юзера на сайте
         // Тобто на ресурсі з яким юзер активно взаємодіє постійно, треба збільшити ліміт
         $toblack = '50';
@@ -836,7 +863,10 @@ class core
 
         }
 
-    //
+    // Ми відштовхуємося від логіки, що:
+    // 1. email це унікальний ідентифікатор користувача
+    // 2. під одним email можна зареєструвати лише один аккаунт
+    // В зв'язку з цим ми закриваємо цією функцією всі можливості множинних використань одного email
     static function buildStandartEmail($email)
         {
 

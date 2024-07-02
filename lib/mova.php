@@ -23,9 +23,9 @@ class mova {
         } else {
             $aco = $sitelg;
         }
-        // В перспективе дефолтным при форсмажорах должен быть en конечно же
+        // У перспективі дефолтним при форсмажорах повинен бути en звичайно ж
         if(empty($aco) or $aco == 'ua' or $aco == 'uk'){
-            return 'uk'; // ukraine - вимушений використовувати саме uk
+            return 'uk'; // ukraine - вимушений використовувати саме uk, а не ua
         }
         if($aco == 'ru' or $aco == 'ge' or $aco == 'by' or $aco == 'kz'){
             return 'ru';

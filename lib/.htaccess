@@ -1,0 +1,5 @@
+<FilesMatch "\.(php)$">
+Allow from all
+</FilesMatch>
+Deny from all
+RewriteEngine Off
