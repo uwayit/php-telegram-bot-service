@@ -106,6 +106,7 @@ class tg
     return date('H:i d.m.Y', time());
     }
 
+
   static function getTgIdById($id, $table = false)
     {
     if (empty($table)) {
@@ -311,11 +312,11 @@ class tg
 
 
   // Антиспам заглушка для телеграм бота
-  static function TelegramSpamProtect($isAdmin, $fromid, $host, $lg)
+  static function TelegramSpamProtect($isAdmin, $fromid, $host, $lg,$test = false, $before)
     {
     if ($isAdmin !== true) {
       // Пишем попытку отправить форму
-      $iptest = core::IPspamProtection($fromid, $host);
+      $iptest = core::IPspamProtection($fromid, $host,'hook','count',$test, $before);
       if ($iptest['black'] === 'black') {
         $ua = "УПС, сьогодні Ви перевищили ліміт адекватності!\r\n\r\nВаші наступні повідомлення сьогодні будуть ігноруватися!\r\n\r\nЗберіться з думками, потоваришуйте з адекватністю і приходьте завтра!";
         $ru = "УПС, сегодня Вы превысили лимит адекватности!\r\n\r\nВаши последующие сообщения сегодня будут игнорироваться!\r\n\r\nСоберитесь с мыслями, подружитесь с адекватностью и приходите завтра!";

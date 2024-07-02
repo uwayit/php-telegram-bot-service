@@ -120,10 +120,9 @@ class core
         return $cleanedData;
         }
 
-    //  Записываем попытку отправки формы и проверяем не превышен ли лимит отправок формы за день
+    //  Записуємо спробу відправлення форми і перевіряємо, чи не перевищений ліміт відправок форми за день
     // Якщо вказано, параметр test то просто перевіряемо факт - айпи в чорному списку сьогодні чи ні
-    // Якось подибільному код написав, але вже як є, пора спаи бо щось засидився
-    static function IPspamProtection($ip, $host, $response = 'not indicated', $count = 'count', $test = false, )
+    static function IPspamProtection($ip, $host, $response = 'not indicated', $count = 'count', $test = false, $iplog = false)
         {
         $firstban = false;
         $blackcount = false;
@@ -133,45 +132,49 @@ class core
         // Під ускладненням ми розуміємо утримання юзера на сайте
         // Тобто на ресурсі з яким юзер активно взаємодіє постійно, треба збільшити ліміт
         $toblack = '50';
+        // Якщо це телеграм хук, то тут можуть бути інші ліміти
+        if ($response = 'hook') {
+            $toblack = load::adequacyLimit;
+            }
 
         // Формуємо базовий масив
         $arr['black'] = '';
+        if (empty($iplog)) {
+            $result = self::$db->query("SELECT * FROM `" . load::$ip_log . "` WHERE `IP`='$ip' AND `date`='$date'");
+            if ($result->num_rows > 1) {
+                // Такого виникати неможе але логіку про всяк варто б продумати якось
+                return false;
 
-        $result = self::$db->query("SELECT * FROM `" . load::$ip_log . "` WHERE `IP`='$ip' AND `date`='$date'");
-
-        if ($result->num_rows == 1) {
-            $iplog = $result->fetch_array(MYSQLI_ASSOC);
-
-            $arr['softcount'] = $iplog['softcount'];
-            $arr['count'] = $iplog['count'];
-            $arr['black'] = $iplog['black'];
-
-            // Можливо лишне, але хай буде
-            if ($test == 'test') {
+                } else if ($result->num_rows == 0) { // Если это первый запрос с текущего айпи впринципе
+                self::insertRecord(load::$ip_log, ["date" => $date, "ip" => $ip, "count" => '1', "softcount" => '1']);
+                $arr['softcount'] = '1';
+                $arr['count'] = '1';
                 return $arr;
                 }
-
-            if ($iplog['black'] == 'black') {
-                $blackcount = "`blackcount` = `blackcount`+1,";
-                } else if ($iplog['black'] == '' and $iplog['count'] >= $toblack) {
-                $firstban = "`black` = 'black',  `domain_black` = '$host',";
-                // Створюємо технічний тікет для контролю
-                self::plog(load::EMAIL, 'IP spam with requests and therefore blocked ' . $host . ' on stage: ' . $response, 'uvaga');
+            if ($result->num_rows == 1) {
+                $iplog = $result->fetch_array(MYSQLI_ASSOC);
                 }
-            self::$db->query("UPDATE " . load::$ip_log . " SET {$blackcount} {$firstban} `$count` = `$count`+1 WHERE `IP`='$ip' AND `date`='$date'");
-            return $arr;
+            }
+        $arr['softcount'] = $iplog['softcount'];
+        $arr['count'] = $iplog['count'];
+        $arr['black'] = $iplog['black'];
 
-
-            } else if ($result->num_rows > 1) {
-            // Такого виникати неможе але логіку про всяк варто б продумати якось
-            return false;
-
-            } else { // Если это первый запрос с текущего айпи впринципе
-            self::insertRecord(load::$ip_log, ["date" => $date, "ip" => $ip, "count" => '1', "softcount" => '1']);
-            $arr['softcount'] = '1';
-            $arr['count'] = '1';
+        // Передаємо інформацію без блокування, тобто просто перевіряємо
+        if ($test == 'test') {
             return $arr;
             }
+
+        if ($arr['black'] == 'black') {
+            $blackcount = "`blackcount` = `blackcount`+1,";
+            } else if ($iplog['black'] == '' and $iplog['count'] >= $toblack) {
+            $firstban = "`black` = 'black',  `domain_black` = '$host',";
+            $arr['black'] = 'black';
+            // Створюємо технічний тікет для контролю
+            self::plog(load::EMAIL, 'IP spam with requests and therefore blocked ' . $host . ' on stage: ' . $response, 'uvaga');
+            }
+        self::$db->query("UPDATE " . load::$ip_log . " SET {$blackcount} {$firstban} `$count` = `$count`+1 WHERE `IP`='$ip' AND `date`='$date'");
+        return $arr;
+
         }
 
 

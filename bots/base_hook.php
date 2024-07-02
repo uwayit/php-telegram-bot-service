@@ -18,6 +18,11 @@ if (!core::$db) {
 // Чистимо вхідні дані аби запобігти:
 // SQL-ін'єкціям, XSS-атакам та іншим загрозам, пов'язаним з необробленими вхідними даними
 $data = core::safetyCleanArray($dirt);
+// Трохи далі, система рахує кількість текстових запитів до бота 
+// (натискання на кнопки не рахуються)
+// Якщо кількість запитів перевищить 50 за добу (налаштувати кількість можна в load::adequacyLimit):
+// Тоді користувача буде обмежено в можливості надсилати подальші запити
+
 
 // Оголошуємо деякі змінні
 $text = false;          // Текст повідомлення що поступив (може бути пустим, якщо прийшло не текстове)
@@ -309,6 +314,17 @@ if (empty($chat) and empty($user)) {
   $bot->botLog($botinfo['name'], 'emptyUserChat', $data, 'hook');
   exit('ok');
   }
+
+
+// Перевіряємо чи не спамить користувач
+$antiSpamData = tg::TelegramSpamProtect($isAdmin, $user, $host, $lg, 'test');
+if ($antiSpamData['count'] >= load::adequacyLimit) {
+  $stopspamtext = tg::TelegramSpamProtect($isAdmin, $user, $host, $lg, false, $antiSpamData);
+  if (!empty($stopspamtext)) {
+    exit('stopspam');
+    }
+  }
+
 
 
 // $botinfo['some'] - це перелік чатів, у відповідь на запити яких саме цей бот просто мовчить як риба

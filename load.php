@@ -22,6 +22,10 @@ class load {
     // super admin email
     // First of all, in order to indicate where to submit tickets for all problems
     const EMAIL = 'gmail@gmail.com';
+    
+    // Скільки повідомлень може користувач надіслати боту
+    // перш ніж бот відмовиться продовжувати сьогодні діалог з користувачем
+    const adequacyLimit = 50;
 
     // Ключ и соли для доступа админа
     // Встановить свої
