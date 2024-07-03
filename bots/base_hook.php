@@ -594,7 +594,7 @@ if ($callback_data) {
 
 
 
-    if ($rear[0] == 'addserviceno') {// В будь якому випадку обнулюємо статус адвоката
+    if ($rear[0] == 'addserviceno') {// В будь якому випадку обнулюємо статус
       $bot->deleteMessage($message_id - 1);
       $bot->deleteMessage($message_id);
       core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `role`= '' WHERE `id`='{$bundle['id']}'");
@@ -1866,6 +1866,7 @@ if ((!empty($command[0]) and $command[0] === '/start') or (!empty($text) and $te
 
 // ЗАГЛУШКА ВКІНЦІ
 // Якщо ми прийшли сюди, значить користувач ввів команду яку бот не вміє опрацьовувати
+// Можливо хтось десь тут захоче підключити AI для відповідей
 $ua = "Я не вмію працювати з такими командами.\r\n\r\nЯ бот - який наразі не має штучного інтелекту. Я просто виконую наперед заготовлені конкретні процедурні завдання. Я не здатний підтримувати бесіду або відповідати на запити та повідомлення, тому що це не входить до зони моєї відповідальності.";
 $ru = "Я не умею работать с такими командами.\r\n\r\nЯ бот - который не обладает искуственным интелектом. Я просто выполняю заранее заготовленные конкретные процедурные задачи. Я не способен как либо участвовать в беседах или отвечать на запросы и сообщения, так как это не входит в зону моей ответственности.";
 $en = "I can't work with such commands.\r\n\r\nI am a bot - which does not yet have artificial intelligence. I simply perform pre-arranged specific procedural tasks. I am unable to participate in conversations or respond to requests and messages, as this is not my responsibility.";
