@@ -28,7 +28,8 @@ class load {
     const adequacyLimit = 50;
 
     // Ключ и соли для доступа админа
-    // Встановить свої
+    // З ключем можна ввійти на файл install.php?service_key=load::SERVICE_KEY для реінсталяції бази данних
+    // ! Встановить свої обов'язково
     const SERVICE_KEY = '123';
     const SERVICE_KEY_SOLD = 'QQQQ';
 

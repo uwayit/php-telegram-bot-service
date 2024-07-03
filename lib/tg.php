@@ -310,7 +310,51 @@ class tg
     return false;
     }
 
+  static function selectCity($bot, $bundle, $list, $arr, $response)
+    {
+    // Якщо єлементів > 7, то клавіатура буде укомпактнена
+    if (count($arr) > 7) {
+      if ($list == 'city') {
+        $utockilk = "перші букви НАСЕЛЕНОГО ПУНКТУ";
+        } else {
+        $utockilk = "натисніть на букви з яких починається назва ОБЛАСТІ";
+        }
 
+      } else {
+      if ($list == 'city') {
+        $utockilk = "НАСЕЛЕНИЙ ПУНКТ";
+        } else {
+        $utockilk = "ОБЛАСТЬ";
+        }
+
+      }
+
+
+    // Хто обирає з массиву?
+// В залежності від цього змінюється відповідь
+    if ($bundle['role'] != 'service') {
+      // Звичайний користувач
+      $response .= "А тепер оберіть " . $utockilk . " Вашого проживання";
+      } else {
+      // Надавач послуг
+      $response .= "А тепер оберіть " . $utockilk . " де Ви готові надавати послуги фізично:";
+      }
+
+
+    // Якщо помилка
+    if ($list == 'error') {
+      $response = "Помилка пошуку...";
+      }
+
+    if ($bundle['role'] != 'service') {
+      $kuda = '/reg';
+      } else {
+      $kuda = 'rear_pluscityservice';
+      }
+
+    $bot->insertButton([["text" => '🔙 ДО СПИСКУ ОБЛАСТЕЙ', "callback_data" => $kuda]]); // Повернутись назад
+    $bot->reply($response);
+    }
   // Антиспам заглушка для телеграм бота
   static function TelegramSpamProtect($isAdmin, $fromid, $host, $lg,$test = false, $before = false)
     {
@@ -368,10 +412,6 @@ class tg
 // Вносимо всі зміни щоб відновити прив'язку
   static function UpdateTgBundle($user, $email, $st, $bot)
     {
-    // В кредитной схеме тоже нужно вернуть привязку
-    if ($st == 'credit') {
-      core::$db->query("UPDATE `" . load::$clients . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
-      }
     core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
     // В таблице тг аккаунтов нужно пометить аккаунт доступным для рассылок и привязать к эмаил аккаунту
     core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `mst` = '',`email`='$email' WHERE `from_id`='{$user}'");
@@ -460,16 +500,12 @@ class tg
 // если юзер забанил бота, то удаляем его из списка рассылки на следующий раз
   static function testStatus($chatid, $status, $test, $bot, $type = false)
     {
-
+bot
     if ($test == false)
       return false;
 
     if (!empty($status) and !empty($status['ok']) and !empty($status['description']) and $status['ok'] == false) {
       if ($status['description'] == 'Forbidden: bot was blocked by the user') {
-        // В кредитной схеме нужно удалить привязку
-        if ($type == 'credit') {
-          core::$db->query("UPDATE `" . load::$clients . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
-          }
 
         // Видаляємо контакт
         // ПРи вході  в кабінет система запитає в людини її новий контакт
