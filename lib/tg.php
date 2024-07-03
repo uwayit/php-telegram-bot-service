@@ -312,7 +312,7 @@ class tg
 
 
   // Антиспам заглушка для телеграм бота
-  static function TelegramSpamProtect($isAdmin, $fromid, $host, $lg,$test = false, $before)
+  static function TelegramSpamProtect($isAdmin, $fromid, $host, $lg,$test = false, $before = false)
     {
     if ($isAdmin !== true) {
       // Пишем попытку отправить форму
