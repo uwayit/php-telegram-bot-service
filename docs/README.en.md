@@ -98,11 +98,13 @@ More documentation regarding the class's capabilities can be found in the commen
 **The bot can become infinitely functional if connected to MySQL and slightly configured**  
 
 
-To install and obtain the full bot, you need to:
-
-Download the entire repository.
-Specify the database access details in the root file MysqlConnection.php.
-Change the constants to your preference in load.php (EMAIL, SERVICE_KEY, SERVICE_KEY_SOLD, SECURITY, SLACK, $SlackSet, tgdevId).
-Execute install.php and follow its instructions.
+**To install and obtain the full bot, you need to:**
+1. Download the entire repository.
+2. Specify the database access details in the root file MysqlConnection.php.
+3. Change the constants to your preference in load.php (EMAIL, SERVICE_KEY, SERVICE_KEY_SOLD, SECURITY, SLACK, $SlackSet, tgdevId).
+4. Execute install.php and follow its instructions.
 5. Set webhook **bots/base_hook.php** [faq](../docs/setWebhook.en.md)  
 6. Pay attention to the restrictions and rules in the root and other .htaccess files.
+
+**Attention!**  
+Up-to-date and more detailed instructions are available in [Ukrainian](../docs/README.ua.md)  
