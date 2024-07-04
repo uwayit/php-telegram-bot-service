@@ -6,13 +6,9 @@ It may also be compatible with PHP 5.6, though this is not guaranteed.
 
 [README українською](../docs/README.ua.md)  
 
-THE BOT IS IN THE STAGE OF FINAL DOCUMENTATION  
-IT IS NOT READY FOR USE NOW  
-FIRST WORK COMMITMENT SCHEDULED FOR 07/06/2024  
-
 A complete set of libraries, classes, and functions required to create a functional procedural Telegram bot that is free from any external dependencies.  
 
-**Key advantages:**  
+## Key advantages:
 1. Low entry barrier (junior friendly) due to simple and well-commented code  
 2. Functionality and flexibility  
 
@@ -112,5 +108,5 @@ More documentation regarding the class's capabilities can be found in the commen
 5. Set webhook **bots/base_hook.php** [faq](../docs/setWebhook.en.md)  
 6. Pay attention to the restrictions and rules in the root and other .htaccess files.
 
-**Attention!**  
+## Attention!
 Up-to-date and more detailed instructions are available in [Ukrainian](../docs/README.ua.md)  
