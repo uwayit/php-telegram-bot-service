@@ -32,7 +32,6 @@ Due to visual testing, you will NOT be able to grasp all the bot's capabilities.
 **Additionally, the bot:**
 - Is protected from injections;  
 - Has anti-spam protection and blacklist (mute and block);  
-- Can easily moderate chats;  
 - Can remain silent in specific chats (even in private);  
 - Can prevent sending certain messages too frequently;  
 - Can maintain context;  
@@ -46,6 +45,13 @@ Due to visual testing, you will NOT be able to grasp all the bot's capabilities.
 - Sends error and exception notifications to Slack or Telegram to the developer;  
 - Logs all incoming data and responses from the TG API for easier debugging;  
 - Can be used for dozens of different functional bots with a single hook;  
+- in public chats, the bot automatically displays intrusive notifications about those who want to join the chat or have seen someone;  
+
+**Additionally, it can easily moderate public chats:**
+- Automatically deletes intrusive messages about users joining or leaving the chat;  
+- Instantly removes spam messages (with links);  
+- Instantly deletes messages containing, for example, obscene language (from your list);  
+- The bot can notify users privately about rule violations and keep track of the number and frequency of these violations. Persistent offenders can be blocked by the bot at both the Telegram API level and the system level (for all chats managed by the bot).  
 
 A sample starting and fully functional **hook** file can be found in  
 **bots/base_hook.php**  

@@ -520,7 +520,6 @@ class tgBot
             }
         $fpp = fopen($_SERVER['DOCUMENT_ROOT'] . "/bots/" . $bot . "/" . $type . "_" . $id . ".txt", "a");
         fwrite($fpp, mb_convert_encoding(print_r($data, true), 'UTF-8'));
-        // fwrite($fpp,iconv('UTF-8', 'Windows-1251', print_r($data, true))); // не працює зі смайлами
         fclose($fpp);
         }
 

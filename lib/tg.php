@@ -138,9 +138,8 @@ class tg
     }
   static function getPartnerByTgUser($id, $table = false)
     {
-    if (empty($table)) {
+    if (empty($table))
       $table = load::$partners;
-      }
     $id = intval($id);
     if (empty($id))
       return false;
@@ -410,12 +409,10 @@ class tg
 
   // Прив'язуємо раніше відвязаний аккаунт
 // Вносимо всі зміни щоб відновити прив'язку
-  static function UpdateTgBundle($user, $email, $st, $bot)
+  static function UpdateTgBundle($user, $email)
     {
-    core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '{$user}' WHERE `email`='{$email}'");
     // В таблице тг аккаунтов нужно пометить аккаунт доступным для рассылок и привязать к эмаил аккаунту
     core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `mst` = '',`email`='$email' WHERE `from_id`='{$user}'");
-
     return true;
 
     }
@@ -498,19 +495,20 @@ class tg
 
   // Всегда при отправках сообщений и не только, проверяем не забанил ли юзер бота
 // если юзер забанил бота, то удаляем его из списка рассылки на следующий раз
-  static function testStatus($chatid, $status, $test, $bot, $type = false)
+  static function testStatus($chatid, $status, $test, $bot, $st = false)
     {
-bot
+
     if ($test == false)
       return false;
 
     if (!empty($status) and !empty($status['ok']) and !empty($status['description']) and $status['ok'] == false) {
       if ($status['description'] == 'Forbidden: bot was blocked by the user') {
 
-        // Видаляємо контакт
-        // ПРи вході  в кабінет система запитає в людини її новий контакт
-        core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
-
+        if ($st != 'bot') {
+          // Видаляємо контакт
+          // ПРи вході  в кабінет на сайті система запитає в людини її новий tg контакт
+          core::$db->query("UPDATE `" . load::$partners . "` SET `TelegaID` = '' WHERE `TelegaID`='{$chatid}'");
+          }
         // В ботосхеме нужно пометить аккаунт НЕдоступным для рассылок
         core::$db->query("UPDATE `" . load::$tg_bundle . "` SET `mst` = 'stop' WHERE `from_id`='{$chatid}' and `bot` = '$bot'");
         return true;
@@ -518,7 +516,7 @@ bot
       // Якщо група стала супергрупою, або змінила ID
       if (is_array($status['parameters']) and !empty($status['parameters']['migrate_to_chat_id'])) {
         // Зберігаємо новий Chat ID групи
-        if ($type == 'event') {
+        if ($st == 'event') {
           core::$db->query("UPDATE `" . load::$club . "` SET `tg_chat` = '{$status['parameters']['migrate_to_chat_id']}' WHERE `tg_chat`='{$chatid}'");
           }
         core::$db->query("UPDATE `tg_group_setup` SET `chat` = '{$status['parameters']['migrate_to_chat_id']}' WHERE `chat`='{$chatid}'");
@@ -569,16 +567,19 @@ bot
   // створює кілька рядків з одним і тим самим каналом
   // Поки що в мене не було потреби вирішувати що з цим робити
   // бо я не додаю кілька ботів адмінами в один й той самий канал
-  public static function getGroup($chat,$chattype = false, $bot = false)
+  public static function getGroup($chat,$chattype = false, $bot_id = false)
     {
     if ($chattype == "private")
       return false;
-    $result = core::$db->query("SELECT * FROM `tg_group_setup` WHERE `chat`='$chat' and `bot_admin`='$bot'");
+    $result = core::$db->query("SELECT * FROM `tg_group_setup` WHERE `chat`='$chat' and `bot_admin`='$bot_id'");
     if ($result->num_rows == 0) {
-      core::$db->query("INSERT INTO `tg_group_setup` SET `chat`='$chat', `bot_admin`='$bot'");
+      core::$db->query("INSERT INTO `tg_group_setup` SET `chat`='$chat', `bot_admin`='$bot_id', `date_reg`=NOW(),`delInOut`='1'");
       $gr['id'] = mysqli_insert_id(core::$db);
+	  // Хочеться уникнути додаткового запиту до бази, тож насотую масив мануально, хоча це не дуже корект
       $gr['chat'] = $chat;
-      $gr['bot_admin'] = $bot;
+      $gr['bot_admin'] = $bot_id;
+	    $gr['date_reg'] = date('Y-m-d');
+      $gr['delInOut'] = 1; // по замовчуваню видаляємо нав'язливі повідомлення про те, що хтось вступив в чат
       return $gr;
       } else {
       return $result->fetch_assoc();
@@ -659,5 +660,45 @@ bot
     return $keyboard; // Повертаємо масив
     }
 
+    // Якщо в повідомлені
+public static function detectSpamLinks($message)
+    {
+    // Регулярний вираз для виявлення посилань
+    $urlPattern = '/https?:\/\/[^\s]+/i';
+
+    // Перевіряємо, чи є посилання в повідомленні
+    if (isset($message['text']) && preg_match_all($urlPattern, $message['text'], $matches)) {
+      // Перевіряємо кожне знайдене посилання
+      foreach ($matches[0] as $url) {
+          return true;
+
+        }
+      }
+    // Якщо посилання не виявлено або всі посилання ведуть на поточний чат/канал
+    return false;
+    }
+
+    // Шукаємо чи немає негарних слів
+     public static function containsStopWords($text, $stopWords = false) {
+    // Приводимо текст до нижнього регістру для порівняння
+    $lowercaseText = mb_strtolower($text, 'UTF-8');
+    if($stopWords == false){
+      // можна доповнювати безкінечно
+      $stopWords = ["пізда", "залупа", "хуйня"];
+
+      }
+    // Перебираємо кожне слово з масиву стоп-слів
+    foreach ($stopWords as $word) {
+        // Приводимо стоп-слово до нижнього регістру для порівняння
+        $lowercaseWord = mb_strtolower($word, 'UTF-8');
+        
+        // Перевіряємо, чи є стоп-слово в тексті
+        if (mb_strpos($lowercaseText, $lowercaseWord) !== false) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
   } // class tg
