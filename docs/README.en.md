@@ -42,12 +42,15 @@ Due to visual testing, you will NOT be able to grasp all the bot's capabilities.
 - Logs all incoming data and responses from the TG API for easier debugging;  
 - Can be used for dozens of different functional bots with a single hook;  
 - in public chats, the bot automatically displays intrusive notifications about those who want to join the chat or have seen someone;  
+- the bot can be easily configured to send the developer automatic quick notifications in tg about errors and exclusions in production;  
 
 **Additionally, it can easily moderate public chats:**
 - Automatically deletes intrusive messages about users joining or leaving the chat;  
 - Instantly removes spam messages (with links);  
-- Instantly deletes messages containing, for example, obscene language (from your list);  
+- can instantly delete messages that contain, for example, obscene language (fuck, etc.) on your list;  
 - The bot can notify users privately about rule violations and keep track of the number and frequency of these violations. Persistent offenders can be blocked by the bot at both the Telegram API level and the system level (for all chats managed by the bot).  
+
+To test the above functionality in its basic configuration - add [bot](https://t.me/TestHostingUa_bot) as an admin to your test chat, or visit this public [chat](https://t.me/chatForTestPhpBot).  
 
 A sample starting and fully functional **hook** file can be found in  
 **bots/base_hook.php**  
@@ -61,23 +64,25 @@ The hook is thoroughly commented, explaining each line.
 // Connection base class
 include_once $_SERVER['DOCUMENT_ROOT'] . "/lib/tgBot.php";
 // Get the bot object
-// Вкажіть токен від botfather та ім’я бота
+// Specify token from botfather and bot name
 $bot = new tgBot($token, $name);
 
-// Якщо вам ЛИШЕ потрібен клас, то потрібно при кожному отриманні об'єкта активувати
+// If you ONLY need the class, then you need to activate it every time you get the object
 $bot->liteModeOn();
 
 // АБО ЩОБ ЦЬОГО НЕ РОБИТИ КОЖЕН РАЗ, ТО В САМОМУ КЛАСІ (!) tgBot:
 // public $FullMode = false;
+// This violates the principles of SOLID, but it is junior friendly
 
-// Бан користувача, наприклад, до 2048 року (unix)
+// Ban the user, for example, until 2048 (unix)
 $bot->tempban($user, '2473401362');
 
-// chat_id|from_id отримувача повідомлення
+// chat_id|from_id of the recipient of the message
 $bot->for($chat_id);
 
-// Видаляємо підготовлену клавіатуру та всі попередні keyboard кнопки що відображаються користувачу
+// Delete the prepared keyboard and all previous keyboard buttons displayed to the user
 $bot->deleteKeyboard();
+
 // Визначаємо тип нової клавіатури
 $bot->setupTypeKeyboard('inline'); // or keyboard or remove_keyboard
 // Додаємо кнопку

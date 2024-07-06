@@ -209,7 +209,8 @@ if (!empty($data['message'])) {
     $text = trim($data['message']['text']);
     // Перевіряємо чи є в повідомленнях посилання
     $urlInText = tg::detectSpamLinks($text);
-    // Перевіряємо, чи є в повідомлені стоп слова
+    // Перевіряємо, чи є в повідомлені стоп слова ()
+    // і повертаємо перше знайдене
     $badWordInText = tg::containsStopWords($text);
     }
   if (!empty($data['message']['reply_to_message']['from']['id'])) {
@@ -299,27 +300,35 @@ if (!empty($botinfo['usher'])) {
 // Отримуйте їх роль аналогічно варіантам вище
 
 
-
 // Якщо користувач НЕ з адміністрації
 // Тепер ми можемо перевірити на спам та нецензурну лексику в чаті
-if($isAdmin !== true and $isUsher !== true and ($chattype == 'group' or $chattype == 'supergroup')){
- // надіслав повідомлення в якому є посилання
-  if($urlInText == true){
+if ($isAdmin !== true and $isUsher !== true and ($chattype == 'group' or $chattype == 'supergroup')) {
+
+  // надіслав повідомлення в якому є посилання
+  if ($urlInText == true) {
     // ми можемо видалити це повідомлення
     // поставити користувача на карандаш наприклад
     // надіслати йому попередження або й одразу заблокувати
     // Все це реалізувати дуже легко:
     $bot->deleteMessage($message_id); // Видаляємо
     // Надсилаючи попередження ми можемо виставити якийсь холд
-    $bot->giveLogName('maybespam');  // Фіксуємо тип повідомлення
+    $bot->giveLogName('maybespam');  // Спочатку даємо і'мя ситуації, а потім робимо setHoldMinutes
     // І після вказання типу встановлюємо холд в хвилинах
     // водночас цей метод перевіряє чи можна надсилати повідомлення користувачу
     $howMuteMin = 3; // в хвилинах
-    $bot->setHoldMinutes($howMuteMin); 
-    if($bot->needsend == 'needsend'){
-      $bot->for($user);                // Надсилаємо в особисті
-      $bot->reply("В нашому чаті заборонено додавати лінки до повідомлень. Ваше повідомленя видалене");                 // Що саме надсилаємо
-    } else {
+    $bot->setHoldMinutes($howMuteMin,$user); 
+    
+    if ($bot->needsend == 'needsend') {
+      // Надсилаємо попередження про порушення в особисті
+      // Якщо треба публічна порка, тоді в $user
+      $bot->for($user);
+      // Що саме надсилаємо
+      $ua = "Ваше повідомленя видалене!\r\n\r\nВ чатах, які я адмініструю, користувачам заборонено додавати лінки до повідомлень!\r\n\r\nПри повторному порушені напротязі ". $howMuteMin." хвилин - Ви будете заблоковані.";
+      $ru = "Ваше сообщение удалено!\r\n\r\nВ чатах, которые я администрирую, пользователям запрещено добавлять ссылки к сообщениям!\r\n\r\nПри повторном нарушении в течение " . $howMuteMin . " минут – Вы будете заблокированы.";
+      $en = "Your message has been deleted!\r\n\r\nIn the chats i administer, users are not allowed to add links to messages!\r\n\r\nWhen retrying, " . $howMuteMin . " minutes - you will be blocked.";
+      $sendPoperedj = mova::lg($lg, $ua, $ru, $en);
+      $bot->reply($sendPoperedj);
+      } else {
       // Якщо це повідомлення надіслати не можна, 
       // значить воно вже було надіслона меньше ніж $howMuteMin тому
       // А значить тут можна такого злосного спамера наприклад заблокувати 
@@ -331,23 +340,24 @@ if($isAdmin !== true and $isUsher !== true and ($chattype == 'group' or $chattyp
       // АЛЕ так чи інакше порушників треба блокувати в цьому чаті використовуючи telegram API
       // тож використовувати в tg_bundle status = black не обов'язково
       // $bot->tempban($user); // Бан до 2048 року
-    }
+      $bot->reply('del:'. $bot->needsend);
+      }
 
     // АБО можна додати в таблицю tg_bundle стовбець типу $bundle['badboy]
     // І зберігати туди +1 за чергове порушення правил, а блокувати вже при досягнені якоісь кількості
 
-
-  }
+     exit('ok');
+    }
 
   // Якщо в повідомлені є брані слова
   // То фактично можна використати такуж логіку як і зі спамом 
   // налаштувався на свій смак
-  if($badWordInText == true){
+  if ($badWordInText == true) {
+    //exit('ok');
+    }
+
 
   }
-  
-
-}
 
 
 
@@ -453,9 +463,9 @@ $ua = "ВЕРІФІКУВАТИ НОМЕР ТЕЛЕФОНУ";
 $ru = "ВЕРИФИЦИРОВАТЬ НОМЕР ТЕЛЕФОНА";
 $en = "VERIFY PHONE NUMBER";
 $sharecontact = mova::lg($lg, $ua, $ru, $en);
-$ua = "ПОВЕРНУТИСЬ НА ГОЛОВНУ";
-$ru = "ВЕРНУТЬСЯ НА ГЛАВНУЮ";
-$en = "BACK TO THE MAIN PAGE";
+$ua = "ПОЧАТИ З ПОЧАТКУ";
+$ru = "НАЧАТЬ С НАЧАЛА";
+$en = "GO TO START";
 $gotostart = mova::lg($lg, $ua, $ru, $en);
 
 
@@ -1008,7 +1018,7 @@ if ($callback_data) {
           }
         $bot->insertButton([["text" => "ВАШ ПРОФІЛЬ", "callback_data" => "/profile"]]);
         $bot->insertButton([["text" => $gotostart, "callback_data" => "/start"]]); // Повернутись назад
-        $bot->reply("Регіон знаходження успішно оновлено на:\r\n\r\n". $region['region']."\r\n". $arr[$arrc[0]]['name']."\r\n\r\n");
+        $bot->reply("Регіон знаходження успішно оновлено на:\r\n\r\n" . $region['region'] . "\r\n" . $arr[$arrc[0]]['name'] . "\r\n\r\n");
         if (!empty($sendReTel)) {
           $bot->setupTypeKeyboard('keyboard');
           $bot->insertButton([["text" => $sharecontact, "request_contact" => true]]);
@@ -1103,7 +1113,7 @@ if ($firstChar == '/' and strlen($text) > 2) {
 
 // тут опрацьовуємо команди які в публічному чаті відправляють ботам користувачі чату
 if ($textCommand == true and strpos($text, '@') !== false) {
-  $command = trim(explode("@", $text));
+  $command = explode("@", $text);
   $text = $command[0];
 
 
@@ -1256,7 +1266,7 @@ if ($textCommand == true and ($text === '/reg' or $text == '/buy')) {
       } else {
       $renewvk = "Якщо Ви змінили номер телефону, то перед замовленням " . $botinfodop['service'] . ", його потрібно оновити";
       $narazi = "Наразі Ви веріфікували:\r\n" . $bundle['phone'] . "\r\n-----\r\n";
-      $bot->insertButton([['text' => "ЗАМОВИТИ ".$botinfodop['service'], 'callback_data' => '/buy']]);
+      $bot->insertButton([['text' => "ЗАМОВИТИ " . $botinfodop['service'], 'callback_data' => '/buy']]);
       }
     $bot->insertButton([['text' => "змінити регіон знаходження", 'callback_data' => 'rear_editregion']]);
     $bot->insertButton([['text' => "змінити номер телефону", 'callback_data' => 'rear_editphone']]);
@@ -1355,7 +1365,7 @@ if ($textCommand == true and $st != 'bot' and $command[0] === '/start' and !empt
     $lg = $co;
     }
 
-    $mdkey = md5($user_key);
+  $mdkey = md5($user_key);
 
   // Адмін НЕ може використати (погасити) діплінки цих типів
   if (($typelink == 'a' or $typelink == 'c') and ($isAdmin === true or $isUsher === true)) {
@@ -1379,7 +1389,7 @@ if ($textCommand == true and $st != 'bot' and $command[0] === '/start' and !empt
     $where = "key";
     $endz = "";
     // тестове
-    $bot->reply('тікет успішно проскановано');
+    $bot->reply("тікет успішно проскановано");
     exit('ok');
     }
 
@@ -1396,6 +1406,7 @@ if ($textCommand == true and $st != 'bot' and $command[0] === '/start' and !empt
   $ru = "Ссылка, которой Вы воспользовались, ни к чему не привела";
   $en = "The link you used did not lead to anything";
   $error_link = mova::lg($lg, $ua, $ru, $en);
+  // Для повторних кліків на теж саме
   $ua = "З поверненням!";
   $ru = "С возвращением!";
   $en = "Welcome back!";
@@ -1463,7 +1474,7 @@ if ($textCommand == true and $st != 'bot' and $command[0] === '/start' and !empt
     }
   // далі проходять лише ті кого ми знайшли в базі
 
-// А знач далі user_key нормально працює
+  // А знач далі user_key нормально працює
   array_push($billet, "{user_key}");
   array_push($repl, $user_key);
   // Отже спроба єкспрес реєстрації
@@ -1574,8 +1585,8 @@ if ($textCommand == true and $st != 'bot' and $command[0] === '/start' and !empt
       // Не дублювати це повідомлення частіше ніж раз на 3 хвилин
       $bot->insertButton([['text' => $sharecontact, 'request_contact' => true]]);
       $bot->setupTypeKeyboard('keyboard');
-      $bot->setHoldMinutes(3);
-      $bot->giveLogName('authstart');
+      $bot->giveLogName('authstart'); // Спочатку даємо і'мя, а потім setHoldMinutes
+      $bot->setHoldMinutes(3,$user);
       $bot->reply($response);
 
       // Записуємо зв'язок цього мила з цим аккаунтом
@@ -1607,7 +1618,7 @@ if ($chattype != 'private') {
 
 // Одразу наперед задаємо, що спілкуємося в особистому чаті з юзером
 $bot->for($user);
-// Якщо це український номер телефона
+// ! Якщо це український номер телефона
 // Мабуть він намагається надіслати номер телефону вручну, що заборонено
 if ((substr($text, 0, 4) == '+380' and strlen($text) == '13') or (substr($text, 0, 3) == '380' and strlen($text) == '12')) {
   // Встановлюємо тип клавіатури
@@ -1619,7 +1630,7 @@ if ((substr($text, 0, 4) == '+380' and strlen($text) == '13') or (substr($text, 
     $bot->reply("Необхідно поділитись тим номером телефону, що прив'язано до Telegram аккаунту.\r\n---\r\nТаким чином, ми робимо формальну веріфікацію номерів для запобігання абюзивному спаму.\r\n---\r\nПоділитись та веріфікувати номер телефону потрібно за допомогою кнопки нижче");
     exit('ok');
     }
-    $bot->reply("Ми НЕ запитували ручне введення номеру телефону. Якщо Ви хочете веріфікувати (підтвердити), номер що прив'язано до поточного Telegram аккаунту, то зробити це необхідно за допомогою кнопки нижче");
+  $bot->reply("Ми НЕ запитували ручне введення номеру телефону. Якщо Ви хочете веріфікувати (підтвердити), номер що прив'язано до поточного Telegram аккаунту, то зробити це необхідно за допомогою кнопки нижче");
   exit('ok');
   }
 
@@ -1792,6 +1803,7 @@ if ($isAdmin !== true) {
   // Кнопки опрацюовуються вище і НЕ лімітуються
   // Повідомленя в публічні чати опрацюовуються вище і тому НЕ лімітуються
   // ! Лімітуються тільки надсилання боту команди та текстові повідомлення не описані вище
+  // ТУТ Додаємо плюс один до лічильника запитів до бота
   $stopspamtext = tg::TelegramSpamProtect($isAdmin, $user, $host, $lg);
   if (!empty($stopspamtext)) {
     $bot->reply($stopspamtext);
@@ -1799,7 +1811,7 @@ if ($isAdmin !== true) {
     }
   }
 
-// Якщо перед нами емаил
+// Якщо перед нами email
 if (filter_var($text, FILTER_VALIDATE_EMAIL)) { //  and $bundle['kod'] !=
   // Стандартизируємо email
   $email = core::buildStandartEmail($text);
@@ -1920,6 +1932,7 @@ if ((!empty($command[0]) and $command[0] === '/start') or (!empty($text) and $te
     $en = "The bot is activated";
     $response = mova::lg($lg, $ua, $ru, $en);
     }
+    // Тут можуть бути кнопки з посиланнями на умови та/або на перелік товарів
   $bot->reply($response);
   exit('ok');
   }

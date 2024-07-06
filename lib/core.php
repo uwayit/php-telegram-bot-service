@@ -261,7 +261,6 @@ class core
         }
 
 
-
     // коректно дописує за цифрами 'раз раза разів'
     // Але з мовами є нюанси... 
     // Більше заточена під слов'янські мови поки що
@@ -338,8 +337,6 @@ class core
         $date = date($format, $time);
         return $date;
         }
-
-
 
 
 
@@ -610,7 +607,7 @@ class core
 
 
 
-    // Функция обновления записей
+    // Function to update records
     static function updateRecord($table, $record, $where)
         {
         if (empty($table))
@@ -645,7 +642,6 @@ class core
         {
         if (empty($table))
             return false;
-
         if (empty($record))
             return false;
 
@@ -696,7 +692,6 @@ class core
 
 
 
-
     // Эта используется НЕ только в кредитной схеме
     // Разбирает строку с настройками которые различаются в зависимости от страны
     // И выдаёт настройку соотвествующую целевой стране
@@ -721,9 +716,6 @@ class core
             }
         return $set;
         }
-
-
-
 
 
 
@@ -838,10 +830,6 @@ class core
 
 
 
-
-
-
-
     // Загалом просто приймає параметри і віддає хеш
     static function getEventTicketsKey($table, $event, $user, $eventid)
         {
@@ -873,7 +861,6 @@ class core
     // В зв'язку з цим ми закриваємо цією функцією всі можливості множинних використань одного email
     static function buildStandartEmail($email)
         {
-
         $email = trim($email);
         $email = str_replace(' ', '', $email);
         $email = strtolower($email);
@@ -949,7 +936,8 @@ class core
                 // Ставим в базе признак mst = region_invalid чтобы функция не заспамила нас письмами
                 self::$db->query("UPDATE " . $table . " SET `mst` = 'region_invalid' WHERE `email` = {$email}");
                 // Логируем и создаём тикет
-                self::plog($email, "The client's region is not described in the database! You need to fix the region AND manually edit mst", 'need', false, $st);
+                $mes = "The client's region is not described in the database! You need to fix the region AND manually edit mst";
+                self::plog($email, $mes, 'need', false, $st);																																
                 return false;
                 }
             return true;
@@ -1098,7 +1086,6 @@ class core
             echo '<br>';
             }
         }
-
 
 
 
@@ -1256,12 +1243,10 @@ class core
         return $ObmenInfo;
         }
 
-
-
     // Приклад використання
     // $directory = '/шлях/до/вашої/папки';
     // $timeThreshold = strtotime('-1 week'); // Наприклад, видаляти файли старше тижня
-    // core::cleanDirectory($directory, $timeThreshold);
+    // self::cleanDirectory($directory, $timeThreshold);
     static function cleanDirectory($directory, $timeThreshold)
         {
         // Перевірка, чи існує папка

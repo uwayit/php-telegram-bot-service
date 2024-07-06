@@ -55,19 +55,13 @@ class tgBot
         // Needed for debugging only
         // After finishing debugging, you should disable logging as unnecessary
         $this->botLog($this->bot, $this->chat, $this->response, $method);
+        // Скидаємо все що стосувалось попереднього повідомлення 
+        // На стан по замовчуваню
+        $this->preparationForNew();
 
-        if ($this->clearKeyboardAfterSend == true) {
-            // Clear the keyboard after sending a notification
-            // щоб попередня клавіатура не дублювалась у випадку якщо треба відправити другий запит в рамках одного виклику
-            $this->keyboard = [];
-            } else {
-            // Якщо $this->clearKeyboardAfterSend = false
-            // Значить видаленя клавіатури недозволено для одного конкретного НАСТУПНОГО повідомлення
-            // Тож клавіатуру зараз не видаляємо, але готуємось видалити її після відправки чергового повідомлення
-            $this->clearKeyboardAfterSend = true;
-            }
         return true;
         }
+    
 
     // Якщо немає доступу до бази данних
     // значить бот запущено в режиме використання лише класу tgBot 
@@ -183,7 +177,8 @@ class tgBot
             $this->keyboard = true;
             }
         }
-    // Якщо хочемо логувати повідомлення - даємо їм імена
+
+    // ! Якщо хочемо логувати повідомлення - даємо їм СПОЧАТКУ імена
     public function giveLogName($name)
         {
         if (!empty($name) and !is_array($name)) {
@@ -191,14 +186,21 @@ class tgBot
             }
         }
 
-    // Перевіряємо, чи не надсилали раніше цільове повідомлення клієнту
-    public function setHoldMinutes($holdtime)
+    // Після того як дали і'мя giveLogName
+    // Встановлюємо час холду в хвилинах та
+    // Перевіряємо, чи не надсилали раніше цільове повідомлення клієнту напротязі цього холду
+    // Якщо надсилали, то повторне не надсилається
+    // Одночасно $this->needsend стає stop, що допоможе обрати шлях в якому рухатись
+    // Тобто можна в особисті надіслати попередження про порушення
+    // Або якщо це наприклад особистий діалог, а бот намагається бути псевдо інтелектуальним, 
+    // можна навчити його відповідати якось по іншому, якщо запитання повторюється
+    public function setHoldMinutes($holdtime,$user)
         {
         // Если это не пустое, значит данное сообщение нельзя отправлять часто!
         // То есть можно отправлять если прошло время холда
         if (!empty($this->essence) and $this->FullMode == true) {
             $holdtime = '- ' . $holdtime . ' minutes';
-            $this->needsend = core::tns($this->chat, 'tg', $this->essence, $holdtime);
+            $this->needsend = core::tns($user, 'tg', $this->essence, $holdtime);
             }
         }
 
@@ -259,30 +261,31 @@ class tgBot
                 'disable_web_page_preview' => true,
                 'reply_markup' => json_encode($reply_markup)
             ]);
+
+            // Перевіряємо відповідь для того, щоб виявити:
+            // Зміну ID чату отримувача
+            // Відписку юзера від повідомлень бота
+            $reID = $this->getTestStatus();
+            // Якщо ми отримали не булеве значення, то це ми отримали новий id чату
+            // А значить минуле повідомлення недоставлене по старому ID
+            // Коли таке може відбутись?
+            // Коли група/чат/канал стали супергруппою, а значить автоматично змінили ID
+            if (is_bool($reID) === false) {
+                $this->request('sendMessage', [
+                    "parse_mode" => $this->parseMode,
+                    "chat_id" => $reID,
+                    "text" => $text,
+                    'disable_web_page_preview' => true,
+                    'reply_markup' => json_encode($reply_markup)
+                ]);
+                }
+            // Если успешно отправлено и есть признак $essence, то логируем в базу данных в dialog
+            $this->getLogDialog($text);
+
             } else {
             $this->response['error'] = 'not need sent';
             }
 
-        // Перевіряємо відповідь для того, щоб виявити:
-        // Зміну ID чату отримувача
-        // Відписку юзера від повідомлень бота
-        $reID = $this->getTestStatus();
-        // Якщо ми отримали не булеве значення, то це ми отримали новий id чату
-        // А значить минуле повідомлення недоставлене по старому ID
-        // Коли таке може відбутись?
-        // Коли група/чат/канал стали супергруппою, а значить автоматично змінили ID
-        if (is_bool($reID) === false) {
-            $this->request('sendMessage', [
-                "parse_mode" => $this->parseMode,
-                "chat_id" => $reID,
-                "text" => $text,
-                'disable_web_page_preview' => true,
-                'reply_markup' => json_encode($reply_markup)
-            ]);
-            }
-        // Если успешно отправлено и есть признак $essence, то логируем в базу данных в dialog
-        $this->getLogDialog($text);
-        //
         return $this->response;
         }
 
@@ -541,5 +544,29 @@ class tgBot
         // Об'єднуємо всі пари в один рядок
         return implode(',', $keyValuePairs);
         }
+
+
+
+    // Для можливості коректної відправки наступних нових/інших повідомлень
+    // Треба скинути всі статуси які можуть негативно вплинути на нове повідомлення
+    public function preparationForNew()
+        {
+        if ($this->clearKeyboardAfterSend == true) {
+            // Clear the keyboard after sending a notification
+            // щоб попередня клавіатура не дублювалась у випадку якщо треба відправити другий запит в рамках одного виклику
+            $this->keyboard = [];
+            } else {
+            // Якщо $this->clearKeyboardAfterSend = false
+            // Значить видаленя клавіатури недозволено для одного конкретного НАСТУПНОГО повідомлення
+            // Тож клавіатуру зараз не видаляємо, але готуємось видалити її після відправки чергового повідомлення
+            $this->clearKeyboardAfterSend = true;
+            }
+
+        if (!empty($this->response) and !empty($this->response['ok']) and $this->response['ok'] == true) {
+            $this->needsend = 'needsend';
+            $this->essence = "";
+            }
+        }
+
 
     }

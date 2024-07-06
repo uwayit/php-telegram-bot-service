@@ -667,7 +667,7 @@ public static function detectSpamLinks($message)
     $urlPattern = '/https?:\/\/[^\s]+/i';
 
     // Перевіряємо, чи є посилання в повідомленні
-    if (isset($message['text']) && preg_match_all($urlPattern, $message['text'], $matches)) {
+    if (isset($message) && preg_match_all($urlPattern, $message, $matches)) {
       // Перевіряємо кожне знайдене посилання
       foreach ($matches[0] as $url) {
           return true;
@@ -679,22 +679,30 @@ public static function detectSpamLinks($message)
     }
 
     // Шукаємо чи немає негарних слів
+    // Функція дуже формально зроблена
+    // Якщо комусь прям дуже треба карати за обсцену лексику - можете розвивати концепт
+    // Фундамент закладено
      public static function containsStopWords($text, $stopWords = false) {
     // Приводимо текст до нижнього регістру для порівняння
     $lowercaseText = mb_strtolower($text, 'UTF-8');
     if($stopWords == false){
-      // можна доповнювати безкінечно
-      $stopWords = ["пізда", "залупа", "хуйня"];
+      // можна доповнювати безкінечно, але то якась утопія
+      // тут воно більше для прикладу
+      $stopWords = ["пізда","залупа","хуйня","пидар","пидор", "підар", "пидор", "уебок", "чмо", "гандон", "fuck"];
 
       }
     // Перебираємо кожне слово з масиву стоп-слів
     foreach ($stopWords as $word) {
         // Приводимо стоп-слово до нижнього регістру для порівняння
         $lowercaseWord = mb_strtolower($word, 'UTF-8');
-        
-        // Перевіряємо, чи є стоп-слово в тексті
-        if (mb_strpos($lowercaseText, $lowercaseWord) !== false) {
-            return true;
+      // щоб недопустити ложних спрацювань 
+      // в словах типу оскорБЛЯТЬ, АНАЛітика, застраХУЙ, МАНДАрин тощо
+      // Додаємо з обох кінців пробіли
+      // Не найкраще рішення можливо, але як на мене - гарне
+      $stopWord = " ". $lowercaseWord." ";
+        // Перевіряємо, чи є стоп-слово в тексті і повертаємо його
+        if (mb_strpos($lowercaseText, $stopWord) !== false) {
+            return $lowercaseWord;
         }
     }
     

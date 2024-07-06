@@ -23,7 +23,8 @@ class tgProfile
         $this->addNavigationButton();
 
         $this->bot->reply($response);
-        exit('ok'); // Можна вийти тут або в hook
+        // Можна вийти тут або в hook
+        exit('ok'); 
         }
 
     private function getPhoneSection()
@@ -63,10 +64,13 @@ class tgProfile
                 $this->bot->insertButton([['text' => "скасувати статус кандидата", 'callback_data' => 'rear_addserviceno']]);
                 $response .= "\r\n---------\r\nРеєстрація у якості " . $botinfodop['service'] . ":\r\n_КАНДИДАТ_";
                 }
+            if ($this->client['role'] != '' and $this->client['role'] != 'candidate') {
+                $this->bot->insertButton([['text' => "Зареєструватись у якості ". $botinfodop['service'], 'callback_data' => '/regservice']]);
+                }
+            $this->bot->insertButton([['text' => "змінити регіон знаходження", 'callback_data' => 'rear_editregion']]);
+
             } elseif ($this->client['role'] == 'service') {
             $response .= $this->getServiceSection($service);
-            } else {
-            $this->bot->insertButton([['text' => "змінити регіон знаходження", 'callback_data' => 'rear_editregion']]);
             }
 
         return $response;
@@ -115,6 +119,6 @@ class tgProfile
 
     private function addNavigationButton()
         {
-        $this->bot->insertButton([["text" => "Повернутись назад", "callback_data" => "/start"]]);
+        $this->bot->insertButton([["text" => "GO TO START", "callback_data" => "/start"]]);
         }
     }
