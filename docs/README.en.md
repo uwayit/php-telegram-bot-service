@@ -40,7 +40,7 @@ Due to visual testing, you will NOT be able to grasp all the bot's capabilities.
 - Allows creating user roles in chats (admin, moderator, etc.);  
 - Sends error and exception notifications to Slack or Telegram to the developer;  
 - Logs all incoming data and responses from the TG API for easier debugging;  
-- Can be used for dozens of different functional bots with a single hook;  
+- one hook can be used as a base and entry point for 100+ (!) of functionally diverse bots;
 - in public chats, the bot automatically displays intrusive notifications about those who want to join the chat or have seen someone;  
 - the bot can be easily configured to send the developer automatic quick notifications in tg about errors and exclusions in production;  
 
