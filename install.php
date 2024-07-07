@@ -1,5 +1,5 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT'] . "/load_test.php";
+require_once $_SERVER['DOCUMENT_ROOT'] . "/load.php";
 
 // Перевірка доступу до бази даних
 if (!core::$db) {
