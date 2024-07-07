@@ -31,7 +31,7 @@ class load {
     // З ключем можна ввійти на файл install.php?service_key=load::SERVICE_KEY для реінсталяції бази данних
     // ! Встановить свої обов'язково
     const SERVICE_KEY = '123';
-    const SERVICE_KEY_SOLD = 'QQQQ';
+    const SERVICE_KEY_SOLD = 'QQQQQQQ';
 
 
     // Нижче, сіль, що бере участь у генерації унікального user_key для кожного клієнта

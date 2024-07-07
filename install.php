@@ -3,7 +3,14 @@ require_once $_SERVER['DOCUMENT_ROOT'] . "/load_test.php";
 
 // Перевірка доступу до бази даних
 if (!core::$db) {
-    exit('error connect or install');
+    exit("Error connect to base");
+    }
+
+// В перспективі, через цей або якийсь інший візуальний інтерфейс 
+// можна буде додавати в систему нові боти або редагувати якісь налаштування
+// А тому для створення авторизації треба змінити ці константи
+if (load::SERVICE_KEY == '123' or load::SERVICE_KEY_SOLD == 'QQQQQQQ') {
+    exit('First change to unique const SERVICE_KEY in load.php');
     }
 
 // Функція для перевірки наявності таблиць
@@ -47,9 +54,11 @@ function anyTableExists($db)
     return $tablesInDb->num_rows > 0;
     }
 echo '<style>label,button{display:block;}
+label,input,button{font-size: 110%;}
+label,input{padding:5px;}
 input,button,div{margin:0 0 15px 0;width:310px;}
-button,div{padding: 20px 0;font-size: 120%;}
-body{margin: auto;width: 310px;text-align: center;position: relative;top: 30px;}</style>';
+button,div{padding: 20px 0}
+body{margin: auto;width: 300px;text-align: center;position: relative;top: 30px;}</style>';
 // Логіка установки
 if (isset($_GET['install']) && $_GET['install'] == 'true' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Очищення бази даних
@@ -104,10 +113,14 @@ if (isset($_GET['install']) && $_GET['install'] == 'true' && $_SERVER['REQUEST_M
     } else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Перевірка наявності таблиць
     if (tablesExist(core::$db)) {
-        echo 'no installation needed';
-        // Якщо Ви хочете додати ще одного бота, ввійдіть з ключем ?key=load::SERVICE_KEY
-        // Але краще за все, видаліть цей інсталяційний файл, та вручну додайте рядки в таблиці tg_bots та tg_bots_dop по аналогії з вже доданим раніше ботом.
-        // Якщо Ви хочете перевстановити систему, то очістить базу даних, чи видаліть будь яку таблицю, після чого цей інсталяційний файл дозволить вам перевстановити базу.
+        echo "<div><h2>No installation needed!</h2></div>";
+        if (empty($_GET['key']) or $_GET['key'] != load::SERVICE_KEY) {
+            echo "<div>Якщо після інсталяції бази, Ви випадково НЕ налаштували свого першого бота, тоді ввійдіть на цю сторінку з ключем ?key=load::SERVICE_KEY<br><br></div>
+            <div>Якщо Ви хочете додатково тонко налаштувати або виправити помилки налаштування раніше доданого бота або хочете додати ще одного, то найзручніше це робити через web інтерфейс phpMyAdmin. В таблицях tg_bot та tg_bots_dop - значення кожного стовбця гарно описані. Також, якщо Ви починаєте використовувати новий або інший домен, треба додати новий рядок в таблицю sites.</div>
+            <div>Якщо після інсталяції бази, Ви випадково НЕ налаштували (Не додали) свого першого бота, або якщо Ви бажаєте все перевстановити з початку, то видалить з бази хоча б одну таблицю, після чого цей інсталяційний файл дозволить вам розпочати процес встановлення з початку.<br><br></div>
+            ";
+            }
+
         exit('no installation needed');
         } elseif (anyTableExists(core::$db)) {
         echo '<div>Цілісність бази порушена. Перевстановити?</div><button onclick="location.href=\'install.php?install=true\'">yes</button>';
@@ -129,5 +142,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     core::$db->query("INSERT INTO tg_bots (admins, site, name, token, country, info_email,reg) VALUES ('$admins', '$site', '$bot', '$bot_token', '$country', '$email',NOW())");
     core::$db->query("INSERT INTO tg_bots_dop (name, manager_mail) VALUES ('$bot', '$email')");
 
-    exit('Installation successful!<br><br><br><br>Настоятельно рекомендуем удалить файл install.php та sql файл бази данних що лежить поряд!');
+    exit("Installation successful!<br><br><br><br>Тепер обов'язково видаліть файл install.php та sql файл бази данних що лежить поряд!");
     }
