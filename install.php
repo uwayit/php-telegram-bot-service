@@ -1,6 +1,9 @@
 <?php
 require_once $_SERVER['DOCUMENT_ROOT'] . "/load.php";
 
+
+$host = core::getCurrentDomainByServerHttpHost();
+
 // Перевірка доступу до бази даних
 if (!core::$db) {
     exit("Error connect to base");
@@ -78,15 +81,22 @@ if (isset($_GET['install']) && $_GET['install'] == 'true' && $_SERVER['REQUEST_M
         }
 
     echo '<form id="installForm" method="post" action="install.php">
-        <label for="admins">Admins:</label><input placeholder="" type="text" name="admins" id="admins" required><br>
-        <label for="site">Site:</label><input placeholder="" type="text" name="site" id="site" required><br>
-        <label for="bot">Bot:</label><input placeholder="" type="text" name="bot" id="bot" required><br>
-        <label for="bot_token">Bot Token:</label><input placeholder="Token" type="text" name="bot_token" id="bot_token" required><br>
-        <label for="country">Country:</label><input placeholder="Country" type="text" name="country" id="country" required><br>
-        <label for="lg">Language:</label><input placeholder="Language" type="text" name="lg" id="lg" required><br>
-        <label for="email">Email:</label><input placeholder="email" type="email" name="email" id="email" required><br>
-        <button type="submit">Submit</button>
-        <div>Зверніть увагу на те, що форма майже не валідується!</div>
+        <label for="admins">Admins:</label>
+        <input placeholder="chat_id" type="text" name="admins" id="admins" required><br>
+        <label for="site">Your site (domain):</label>
+        <input placeholder="domain" type="text" name="site" id="site" required value="'.$host.'"><br>
+        <label for="bot">Bot name in tg:</label>
+        <input placeholder="name_bot" type="text" name="bot" id="bot" required><br>
+        <label for="bot_token">Bot Token:</label>
+        <input placeholder="Token" type="text" name="bot_token" id="bot_token" required><br>
+        <label for="country">Country:</label>
+        <input placeholder="Country" type="text" name="country" id="country" required maxlength="2"><br>
+        <label for="lg">Language:</label>
+        <input placeholder="Language" type="text" name="lg" id="lg" required><br>
+        <label for="email">Email:</label>
+        <input placeholder="email" type="email" name="email" id="email" required><br>
+        <button type="submit">ADD BOT</button>
+        <div>Зверніть увагу на те, що форма майже не валідується!<br>Якщо Ви зробите помилки, то виправляти їх нео</div>
     </form>';
 
     echo '<script>
